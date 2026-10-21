@@ -206,7 +206,11 @@ button.part { cursor: pointer; }
 details.tpl { display: block; }
 details.tpl > summary { cursor: pointer; }
 .board-help { margin-top: 4px; }
-.b-x { border: none; background: none; color: var(--muted); padding: 0 4px; margin-left: 2px; font-size: 12px; line-height: 1; }
+.b-x { border: 1px solid var(--line); background: var(--surface); color: var(--muted); padding: 2px 7px; margin-left: 4px; font-size: 13px; line-height: 1.1; border-radius: 6px; min-width: 26px; min-height: 24px; }
+.b-head .b-lane { display: flex; align-items: center; justify-content: center; }
+.b-grip { border: 1px dashed var(--line); background: none; color: var(--muted); font-size: 11px; padding: 3px 4px; border-radius: 6px; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: grab; }
+.b-cell.lifted { opacity: .35; }
+.drag-ghost.b-cell { position: fixed; }
 .b-step { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 button.part { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 .part.lifted { opacity: .35; }
@@ -1142,16 +1146,17 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       return opts.editable ? `<button type="button" class="part${opts.sel === g.i ? " sel" : ""}" data-part="${g.i}">${inner}</button>` : `<span class="part">${inner}</span>`;
     };
     let html = `<div class="board" style="--lanes:${lanes.length}">
-      <div class="b-row b-head"><span class="b-step"></span>${lanes.map((l) => `<span class="b-lane lane-${l}">ライン${l}${opts.editable && lanes.length > 1 ? `<button type="button" class="b-x" data-rmlane="${l}" aria-label="ライン${l}を削除">×</button>` : ""}</span>`).join("")}</div>`;
+      <div class="b-row b-head"><span class="b-step"></span>${lanes.map((l) => `<span class="b-lane lane-${l}">ライン${l}${opts.editable ? `<button type="button" class="b-x" data-rmlane="${l}" aria-label="ライン${l}を削除">×</button>` : ""}</span>`).join("")}</div>`;
+    const grip = (l, st) => (opts.editable && n.filter((g) => g.line === l && g.step === st).length > 1 ? `<button type="button" class="b-grip" data-grip="${l}:${st}" aria-label="このマスをまとめて動かす">⠿ まとめて</button>` : "");
     const stepLabel = (st) => `<span class="b-step">段${st}${opts.editable && n.some((g) => g.step === st) ? `<button type="button" class="b-x" data-rmstep="${st}" aria-label="段${st}を削除">×</button>` : ""}</span>`;
     steps.forEach((st, si) => {
       if (si) html += `<div class="b-arrow"${opts.editable ? ` data-insert="${st}"` : ""}>↓</div>`;
       const laneParts = n.filter((g) => g.step === st && g.line !== "全体");
       const allParts = n.filter((g) => g.step === st && g.line === "全体");
       if (laneParts.length || !allParts.length) {
-        html += `<div class="b-row">${stepLabel(st)}${lanes.map((l) => `<div class="b-cell lane-${l}" data-cell="${l}:${st}">${n.filter((g) => g.step === st && g.line === l).map(chip).join("")}${opts.editable ? `<button type="button" class="b-add" data-addcell="${l}:${st}" aria-label="ライン${l}の段${st}にパートを追加">＋</button>` : ""}</div>`).join("")}</div>`;
+        html += `<div class="b-row">${stepLabel(st)}${lanes.map((l) => `<div class="b-cell lane-${l}" data-cell="${l}:${st}">${grip(l, st)}${n.filter((g) => g.step === st && g.line === l).map(chip).join("")}${opts.editable ? `<button type="button" class="b-add" data-addcell="${l}:${st}" aria-label="ライン${l}の段${st}にパートを追加">＋</button>` : ""}</div>`).join("")}</div>`;
       }
-      if (allParts.length) html += `<div class="b-row">${laneParts.length ? `<span class="b-step"></span>` : stepLabel(st)}<div class="b-cell lane-all b-wide" data-cell="全体:${st}"><span class="b-tag">全員そろって</span>${allParts.map(chip).join("")}</div></div>`;
+      if (allParts.length) html += `<div class="b-row">${laneParts.length ? `<span class="b-step"></span>` : stepLabel(st)}<div class="b-cell lane-all b-wide" data-cell="全体:${st}">${grip("全体", st)}<span class="b-tag">全員そろって</span>${allParts.map(chip).join("")}</div></div>`;
     });
     if (opts.editable && n.length) html += `<div class="b-insert-end" data-insert="${(steps[steps.length - 1] || 0) + 1}">ここに置くと新しい段</div>`;
     return html + `</div>`;
@@ -1242,7 +1247,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
         <div class="row"><button type="button" data-make="buddy">個別→バディ合流→本編</button><button type="button" data-make="intro">個別→本編</button><button type="button" data-make="main">本編だけ</button></div>
       </details>
 
-      <div class="board-help small muted">横に並んだ<b>ライン</b>は同時進行、縦の<b>段</b>は上から順番です。同じマスのパートは順不同。パートを押すと下で編集、<b>長押しでつかんで</b>別のマスや「↓」（間に新しい段）へ動かせます。ライン名・段の × でまとめて削除できます。</div>
+      <div class="board-help small muted">横に並んだ<b>ライン</b>は同時進行、縦の<b>段</b>は上から順番です。同じマスのパートは順不同。パートを押すと下で編集、<b>長押しでつかんで</b>別のマスや「↓」（間に新しい段）へ動かせます。マスに2つ以上パートがあるときは「⠿ まとめて」でマスごと動かせます。ライン名・段の × でまとめて削除できます。</div>
       ${boardHtml(E.segments, { editable: true, sel: E.sel, lanes: E.lanes })}
       <div class="row board-tools">
         ${E.undo ? `<button type="button" data-undo>↶ 元に戻す</button>` : ""}
@@ -1308,16 +1313,16 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       E.segments = E.segments.filter((x) => x.step !== +b.dataset.rmstep);
       E.sel = null; compact(); redraw();
     }));
-    // 長押し（マウスはそのままドラッグ）でパートをつかんで、マスか「↓」に落とす
+    // 長押し（マウスはそのままドラッグ）でパートをつかんで、マスか「↓」に落とす。マスの「⠿」はマスの中身をまとめて動かす
     let drag = null, justDragged = false;
     const board = $(".board", f);
     const targetAt = (x, y) => document.elementFromPoint(x, y)?.closest("[data-cell],[data-insert]");
-    const lift = (src, i, x, y) => {
+    const lift = (src, items, x, y) => {
       const r = src.getBoundingClientRect();
       const ghost = src.cloneNode(true);
-      ghost.className = "part drag-ghost"; ghost.style.width = r.width + "px";
+      ghost.classList.add("drag-ghost"); ghost.style.width = r.width + "px";
       document.body.appendChild(ghost);
-      drag = { i, ghost, dx: x - r.left, dy: y - r.top, over: null };
+      drag = { items, ghost, dx: x - r.left, dy: y - r.top, over: null };
       board.classList.add("dragging"); src.classList.add("lifted");
       navigator.vibrate?.(15);
       moveTo(x, y);
@@ -1328,39 +1333,46 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       if (t !== drag.over) { drag.over?.classList.remove("over"); t?.classList.add("over"); drag.over = t; }
     };
     const dropAt = (x, y) => {
-      const t = targetAt(x, y), g2 = E.segments[drag.i];
+      const t = targetAt(x, y), moving = drag.items.map((i) => E.segments[i]);
       drag.ghost.remove(); board.classList.remove("dragging");
-      const i = drag.i; drag = null; justDragged = true; setTimeout(() => (justDragged = false), 400);
+      const items = drag.items; drag = null; justDragged = true; setTimeout(() => (justDragged = false), 400);
       if (!t) { redraw(); return; }
-      if (t.dataset.cell) { const [l, st] = t.dataset.cell.split(":"); g2.line = l; g2.step = +st; }
-      else { const st = +t.dataset.insert; E.segments.forEach((x) => { if (x !== g2 && x.step >= st) x.step++; }); g2.step = st; }
-      compact(); E.sel = i; redraw();
+      if (t.dataset.cell) { const [l, st] = t.dataset.cell.split(":"); moving.forEach((g2) => { g2.line = l; g2.step = +st; }); }
+      else { const st = +t.dataset.insert; E.segments.forEach((x) => { if (!moving.includes(x) && x.step >= st) x.step++; }); moving.forEach((g2) => (g2.step = st)); }
+      compact(); E.sel = items.length === 1 ? items[0] : null; redraw();
     };
-    f.querySelectorAll("[data-part]").forEach((b) => {
-      const i = +b.dataset.part;
+    const draggable = (el, items, delay, ghostOf = el) => {
       let timer = null, sx = 0, sy = 0;
-      b.addEventListener("touchstart", (e) => {
+      el.addEventListener("touchstart", (e) => {
         const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
-        timer = setTimeout(() => { timer = null; lift(b, i, sx, sy); }, 350);
+        if (!delay) lift(ghostOf, items(), sx, sy);
+        else timer = setTimeout(() => { timer = null; lift(ghostOf, items(), sx, sy); }, delay);
       }, { passive: true });
-      b.addEventListener("touchmove", (e) => {
+      el.addEventListener("touchmove", (e) => {
         const t = e.touches[0];
         if (drag) { e.preventDefault(); moveTo(t.clientX, t.clientY); }
         else if (timer && Math.hypot(t.clientX - sx, t.clientY - sy) > 10) { clearTimeout(timer); timer = null; }
       }, { passive: false });
-      b.addEventListener("touchend", (e) => {
+      el.addEventListener("touchend", (e) => {
         clearTimeout(timer); timer = null;
         if (drag) { e.preventDefault(); const t = e.changedTouches[0]; dropAt(t.clientX, t.clientY); }
       });
-      b.addEventListener("touchcancel", () => { clearTimeout(timer); timer = null; if (drag) { drag.ghost.remove(); drag = null; redraw(); } });
-      b.addEventListener("contextmenu", (e) => e.preventDefault());
-      b.addEventListener("mousedown", (e) => {
+      el.addEventListener("touchcancel", () => { clearTimeout(timer); timer = null; if (drag) { drag.ghost.remove(); drag = null; redraw(); } });
+      el.addEventListener("contextmenu", (e) => e.preventDefault());
+      el.addEventListener("mousedown", (e) => {
         if (e.button) return;
+        e.stopPropagation();
         const x0 = e.clientX, y0 = e.clientY;
-        const mm = (ev) => { if (!drag && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) lift(b, i, x0, y0); if (drag) moveTo(ev.clientX, ev.clientY); };
+        const mm = (ev) => { if (!drag && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) lift(ghostOf, items(), x0, y0); if (drag) moveTo(ev.clientX, ev.clientY); };
         const mu = (ev) => { window.removeEventListener("mousemove", mm); window.removeEventListener("mouseup", mu); if (drag) dropAt(ev.clientX, ev.clientY); };
         window.addEventListener("mousemove", mm); window.addEventListener("mouseup", mu);
       });
+    };
+    f.querySelectorAll("[data-part]").forEach((b) => draggable(b, () => [+b.dataset.part], 350));
+    f.querySelectorAll("[data-grip]").forEach((h) => {
+      const cell = h.closest("[data-cell]");
+      const items = () => { const [l, st] = h.dataset.grip.split(":"); return E.segments.map((x, i) => (x.line === l && x.step === +st ? i : -1)).filter((i) => i >= 0); };
+      draggable(h, items, 0, cell);
     });
     f.querySelectorAll("[data-part]").forEach((b) => (b.onclick = () => { if (justDragged) return; E.sel = E.sel === +b.dataset.part ? null : +b.dataset.part; redraw(); $(".part-edit", f)?.scrollIntoView({ block: "nearest" }); }));
     f.querySelectorAll("[data-addcell]").forEach((b) => (b.onclick = () => { const [l, st] = b.dataset.addcell.split(":"); nextHoPart(l, +st); redraw(); }));
