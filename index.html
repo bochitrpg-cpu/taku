@@ -179,7 +179,20 @@ button.big { font-size: 15px; padding: 10px 14px; justify-content: center; }
 .tplitem { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .arrow { color: var(--muted); font-size: 12px; }
-.dep { color: var(--muted); font-size: 11px; }
+.flow-stages { display: grid; gap: 4px; }
+.stage { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.stage-no { font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 2.6em; }
+.lane { display: inline-flex; flex-wrap: wrap; gap: 3px; align-items: center; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; }
+.lane > b { font-size: 11px; margin-right: 2px; }
+.lane-A { border-color: var(--accent); } .lane-B { border-color: var(--maybe); } .lane-C { border-color: var(--ng); } .lane-D { border-color: var(--muted); } .lane-all { border-style: dashed; }
+.stage-head { font-weight: 700; font-size: 13px; margin-top: 4px; }
+li.seg.lane-A { border-left: 4px solid var(--accent); } li.seg.lane-B { border-left: 4px solid var(--maybe); } li.seg.lane-C { border-left: 4px solid var(--ng); } li.seg.lane-D { border-left: 4px solid var(--muted); } li.seg.lane-all { border-left: 4px dashed var(--line); }
+.seg-lines { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.seg-lines > .danger { margin-left: auto; }
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.segmented button { border: none; border-radius: 0; padding: 3px 9px; background: var(--surface); }
+.segmented button + button { border-left: 1px solid var(--line); }
+.segmented button.on { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .deps { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-left: 2.2em; }
 .tpl { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); }
 .stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
@@ -588,6 +601,9 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   }
   // 各パートの「先に終わらせるパート」。after が無い古いデータは上から順番どおり
   function depsOf(segs) {
+    // ライン方式: 段が前で、同じラインか「全体」ラインのパートを先に終わらせる
+    if (segs.length && segs.every((g) => g.line && g.step))
+      return segs.map((g, i) => segs.map((h, j) => j).filter((j) => segs[j].step < g.step && (segs[j].line === g.line || segs[j].line === "全体" || g.line === "全体")));
     return segs.map((g, i) => (Array.isArray(g.after) ? g.after.filter((j) => j !== i && j >= 0 && j < segs.length) : i ? [i - 1] : []));
   }
   // 指定された順番だけ守り、パート同士が重ならないように早い時間から詰めていく
@@ -779,7 +795,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   }
   function planSectionHtml(poll, scen) {
     const segs = scen.segments || [];
-    let html = `<div class="summary"><h2>「${esc(scen.name)}」の組み方</h2><div class="flow">${flowHtml(segs)}</div>`;
+    let html = `<div class="summary"><h2>「${esc(scen.name)}」の組み方</h2><div class="flow-stages">${flowHtml(segs)}</div>`;
     const roles = new Set(poll.players.map((p) => roleOf(p.name)).filter(Boolean));
     const missing = [...new Set(segs.flatMap((g) => g.roles))].filter((r) => r !== "全員" && !roles.has(r));
     if (missing.length) html += `<div class="notice warn">伝助の表に ${missing.map(esc).join("、")} が付いた名前が見つかりません。名前の頭に「KP」「HO1」のように付けると判定できます。</div>`;
@@ -1049,13 +1065,22 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   function specOf(segs) {
     return segs.map((g) => `${g.roles.join("")}（${g.minutes % 60 ? (g.minutes >= 60 ? `${g.minutes / 60}時間` : `${g.minutes}分`) : `${g.minutes / 60}時間`}）`).join("");
   }
-  // 「1・2の後」のような順番の説明
-  function depText(segs, i) {
-    const d = depsOf(segs)[i];
-    return d.length ? `${d.map((j) => j + 1).join("・")}の後` : "最初からOK";
+  // ライン（並行して進む流れ）と段（ライン内の順番。同じ段は順不同）
+  const LINES = ["A", "B", "C", "D", "全体"];
+  const lineLabel = (l) => (l === "全体" ? "全体" : `ライン${l}`);
+  // 古いデータ（ライン無し）は「全体」ラインで上から順番どおりとみなす
+  function normSegs(segs) {
+    if (segs.every((g) => g.line && g.step)) return segs;
+    const deps = depsOf(segs);
+    const step = [];
+    segs.forEach((_, i) => (step[i] = 1 + Math.max(0, ...deps[i].map((j) => step[j] || 1))));
+    return segs.map((g, i) => ({ ...g, line: "全体", step: step[i] }));
   }
   function flowHtml(segs) {
-    return segs.map((g, i) => `<span class="chip"><b class="mono">${i + 1}</b> ${esc(g.roles.join("+"))} <span class="mono">${esc(fmtDur(g.minutes))}</span> <span class="dep">${esc(depText(segs, i))}</span></span>`).join("");
+    const n = normSegs(segs);
+    const steps = [...new Set(n.map((g) => g.step))].sort((a, b) => a - b);
+    return steps.map((st) => `<div class="stage"><span class="stage-no">段${st}</span>${LINES.filter((l) => n.some((g) => g.step === st && g.line === l)).map((l) =>
+      `<span class="lane lane-${l === "全体" ? "all" : l}"><b>${esc(lineLabel(l))}</b>${n.filter((g) => g.step === st && g.line === l).map((g) => `<span class="chip">${esc(g.roles.join("+"))} <span class="mono">${esc(fmtDur(g.minutes))}</span></span>`).join("")}</span>`).join("")}</div>`).join("");
   }
   function hoCountFromPolls() {
     let n = 0;
@@ -1064,38 +1089,36 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   }
   const hoNum = (r) => +(r.match(/^HO(\d+)$/) || [])[1] || 0;
   function newEditor(s) {
-    const src = s ? s.segments || [] : [];
-    const deps = depsOf(src);
-    const segs = src.map((g, i) => ({ roles: [...g.roles], minutes: g.minutes, after: [...deps[i]] }));
+    const segs = normSegs(s ? s.segments || [] : []).map((g) => ({ roles: [...g.roles], minutes: g.minutes, line: g.line, step: g.step }));
     const used = Math.max(0, ...segs.flatMap((g) => g.roles.map(hoNum)));
     const ho = Math.max(hoCountFromPolls(), 2);
     return { id: s?.id || null, name: s?.name || "", note: s?.note || "", segments: segs, hoMax: Math.max(used, ho), tplHo: ho, tplIntro: 60, tplBuddy: 60, tplMain: 240 };
   }
-  // テンプレート
   function makeTemplate(E, kind) {
-    const intros = Array.from({ length: E.tplHo }, (_, i) => ({ roles: ["KP", `HO${i + 1}`], minutes: E.tplIntro, after: [] }));
-    if (kind === "main") return [{ roles: ["全員"], minutes: E.tplMain, after: [] }];
-    if (kind === "intro") return [...intros, { roles: ["全員"], minutes: E.tplMain, after: intros.map((_, i) => i) }];
-    // バディ導入: HO1・HO2 → HO1+HO2、HO3・HO4 → HO3+HO4 … → 本編
-    const segs = [], buddies = [];
-    for (let a = 0; a < E.tplHo; a += 2) {
-      const i1 = segs.push({ ...intros[a], after: [] }) - 1;
+    const intro = (n, line, step) => ({ roles: ["KP", `HO${n}`], minutes: E.tplIntro, line, step });
+    if (kind === "main") return [{ roles: ["全員"], minutes: E.tplMain, line: "全体", step: 1 }];
+    if (kind === "intro") return [...Array.from({ length: E.tplHo }, (_, i) => intro(i + 1, "A", 1)), { roles: ["全員"], minutes: E.tplMain, line: "全体", step: 2 }];
+    // バディ導入: ペアごとに1ライン（HO1・HO2→HO1+HO2 がラインA、HO3・HO4→HO3+HO4 がラインB…）を並行、最後に全体で本編
+    const segs = [];
+    for (let a = 0, li = 0; a < E.tplHo; a += 2, li++) {
+      const line = LINES[Math.min(li, 3)];
+      segs.push(intro(a + 1, line, 1));
       if (a + 1 < E.tplHo) {
-        const i2 = segs.push({ ...intros[a + 1], after: [] }) - 1;
-        buddies.push(segs.push({ roles: ["KP", `HO${a + 1}`, `HO${a + 2}`], minutes: E.tplBuddy, after: [i1, i2] }) - 1);
-      } else buddies.push(i1);
+        segs.push(intro(a + 2, line, 1));
+        segs.push({ roles: ["KP", `HO${a + 1}`, `HO${a + 2}`], minutes: E.tplBuddy, line, step: 2 });
+      }
     }
-    segs.push({ roles: ["全員"], minutes: E.tplMain, after: buddies });
+    segs.push({ roles: ["全員"], minutes: E.tplMain, line: "全体", step: 3 });
     return segs;
   }
 
   function renderScenarios() {
     const el = $("#panel-scenarios");
     if (!S.ed) S.ed = newEditor();
-    el.innerHTML = `<div class="small muted">伝助の名前の頭に「KP」「HO1」などを付けておくと、役職で判定します。パートごとに「先に終わらせるパート」を決めておくと、その順番だけ守って空いている時間に並べます。</div>
+    el.innerHTML = `<div class="small muted">伝助の名前の頭に「KP」「HO1」などを付けておくと、役職で判定します。<b>ライン</b>は並行して進められる流れ、<b>段</b>はライン内の順番です（同じ段のパートは順不同）。「全体」ラインのパートは、その前の段がすべてのラインで終わってから行います。</div>
       <div class="scen-list">${S.scenarios.map((s) => `<article class="card" data-scid="${esc(s.id)}">
         <h3>${esc(s.name)}</h3>
-        <div class="flow">${flowHtml(s.segments || [])}</div>
+        <div class="flow-stages">${flowHtml(s.segments || [])}</div>
         ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
         <div class="actions"><button data-use>この構成で組む</button>${S.canWrite ? `<button data-edit>編集</button><button data-dup>複製</button><button class="danger" data-del>削除</button>` : ""}</div>
         <div data-host></div></article>`).join("") || `<div class="notice">登録されたシナリオはまだありません。下のフォームで作ると、ここに並びます。</div>`}</div>
@@ -1121,9 +1144,11 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   function renderEditor() {
     const f = $("#sf"); if (!f) return;
     const E = S.ed;
+    // 段 → ラインの順に並べて表示
+    E.segments.sort((a, b) => a.step - b.step || LINES.indexOf(a.line) - LINES.indexOf(b.line));
     const roleOpts = ["KP", ...Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`), "全員"];
-    const total = E.segments.reduce((a, g) => a + g.minutes, 0);
     const stepper = (key, d, label, val) => `<span class="tplitem"><span>${label}</span><span class="stepper"><button type="button" data-tpl="${key}" data-d="-${d}" aria-label="${label}を減らす">−</button><span class="mono">${val}</span><button type="button" data-tpl="${key}" data-d="${d}" aria-label="${label}を増やす">＋</button></span></span>`;
+    const steps = [...new Set(E.segments.map((g) => g.step))];
     f.innerHTML = `<h3>${E.id ? `「${esc(E.name)}」を編集` : "シナリオを作る"}</h3>
       <label class="field">シナリオ名<input type="text" id="sf-name" required placeholder="例: 狂気山脈" value="${esc(E.name)}"></label>
       <div class="tpl">
@@ -1135,23 +1160,23 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
           ${stepper("tplMain", 30, "本編", fmtDur(E.tplMain))}
         </div>
         <div class="row"><button type="button" data-make="buddy">個別→バディ→本編</button><button type="button" data-make="intro">個別→本編</button><button type="button" data-make="main">本編だけ</button></div>
-        <div class="small muted">「個別→バディ→本編」はHO1・HO2の個別導入（順不同）→HO1+HO2のバディ導入、HO3・HO4も同様、両方終わったら本編、という形を作ります。</div>
+        <div class="small muted">「個別→バディ→本編」は、ラインA（HO1・HO2の個別導入→HO1+HO2のバディ導入）とラインB（HO3・HO4→HO3+HO4）を並行して進め、両方終わったら本編、という形を作ります。</div>
       </div>
-      <div class="field">パート（番号は表示順。実際の順番は「先に終わらせる」で決まります）</div>
-      <ol class="segs">${E.segments.map((g, i) => `<li class="seg" data-i="${i}">
-        <div class="seg-head"><span class="seg-no mono">${i + 1}</span>
-          <div class="pick">${roleOpts.map((r) => `<label><input type="checkbox" data-role="${r}"${g.roles.includes(r) ? " checked" : ""}>${r}</label>`).join("")}</div></div>
+      ${E.segments.length ? `<div class="flow-stages">${flowHtml(E.segments)}</div>` : ""}
+      <ol class="segs">${E.segments.map((g, i) => `${i === 0 || E.segments[i - 1].step !== g.step ? `<li class="stage-head">段${g.step}${g.step > 1 ? `<span class="small muted">　同じラインの前の段（と「全体」）が終わってから</span>` : ""}</li>` : ""}<li class="seg lane-${g.line === "全体" ? "all" : g.line}" data-i="${i}">
+        <div class="seg-lines"><span class="small muted">ライン</span><span class="segmented">${LINES.map((l) => `<button type="button" data-line="${l}" class="${g.line === l ? "on" : ""}">${l}</button>`).join("")}</span>
+          <span class="small muted">段</span><span class="stepper"><button type="button" data-step="-1" aria-label="前の段へ"${g.step <= 1 ? " disabled" : ""}>−</button><span class="mono">${g.step}</span><button type="button" data-step="1" aria-label="次の段へ">＋</button></span>
+          <button type="button" class="danger" data-rm aria-label="このパートを消す">×</button></div>
+        <div class="pick">${roleOpts.map((r) => `<label><input type="checkbox" data-role="${r}"${g.roles.includes(r) ? " checked" : ""}>${r}</label>`).join("")}</div>
         <div class="row seg-foot">
           <span class="stepper"><button type="button" data-dur="-30" aria-label="30分短く">−</button><span class="mono">${fmtDur(g.minutes)}</span><button type="button" data-dur="30" aria-label="30分長く">＋</button></span>
           ${[60, 120, 180, 240].map((m) => `<button type="button" class="quick${g.minutes === m ? " on" : ""}" data-set="${m}">${m / 60}h</button>`).join("")}
-          <span class="seg-move"><button type="button" data-mv="-1" aria-label="上へ"${i === 0 ? " disabled" : ""}>↑</button><button type="button" data-mv="1" aria-label="下へ"${i === E.segments.length - 1 ? " disabled" : ""}>↓</button><button type="button" class="danger" data-rm aria-label="このパートを消す">×</button></span>
         </div>
-        ${i ? `<div class="deps"><span class="small muted">先に終わらせる：</span><div class="pick">${E.segments.slice(0, i).map((h, j) => `<label><input type="checkbox" data-dep="${j}"${g.after.includes(j) ? " checked" : ""}>${j + 1} ${esc(h.roles.join("+"))}</label>`).join("")}</div>${g.after.length ? "" : `<span class="small muted">（指定なし＝いつでもOK）</span>`}</div>` : ""}
       </li>`).join("")}</ol>
       ${E.segments.length ? "" : `<div class="notice">まだパートがありません。テンプレートを使うか、下のボタンで追加してください。</div>`}
-      <div class="row"><button type="button" data-add="KP">＋ KPと個別パート</button><button type="button" data-add="全員">＋ 全員パート</button><button type="button" data-ho>HOの数を増やす（今 ${E.hoMax}）</button></div>
-      ${E.segments.length ? `<div class="small muted">合計 <span class="mono">${fmtDur(total)}</span></div><div class="flow">${flowHtml(E.segments)}</div>` : ""}
-      <details class="small"><summary>文字で入力する（上から順番どおりになります）</summary>
+      <div class="row"><button type="button" data-add="KP">＋ 個別パート</button><button type="button" data-add="全員">＋ 全員パート（最後の段の次）</button><button type="button" data-ho>HOの数を増やす（今 ${E.hoMax}）</button></div>
+      ${E.segments.length ? `<div class="small muted">合計 <span class="mono">${fmtDur(E.segments.reduce((a, g) => a + g.minutes, 0))}</span>（${steps.length}段）</div>` : ""}
+      <details class="small"><summary>文字で入力する（「全体」ラインで上から順番どおりになります）</summary>
         <div class="row" style="margin-top:6px"><input type="text" id="sf-spec" value="${esc(specOf(E.segments))}" placeholder="KPHO1（1時間）KPHO2（1時間）全員（4時間）" style="flex:1;min-width:220px"><button type="button" id="sf-spec-go">反映</button></div>
       </details>
       <label class="field">メモ<input type="text" id="sf-note" value="${esc(E.note)}"></label>
@@ -1159,47 +1184,33 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
 
     const keep = () => { E.name = $("#sf-name").value; E.note = $("#sf-note").value; };
     const redraw = () => { keep(); renderEditor(); };
-    // 並べ替え・削除のときに「先に終わらせる」の番号を付け替える
-    const remap = (fn) => E.segments.forEach((g, i) => { g.after = g.after.map(fn).filter((j) => j != null && j >= 0 && j < i).sort((a, b) => a - b); });
     f.querySelectorAll("[data-tpl]").forEach((b) => (b.onclick = () => {
       const k = b.dataset.tpl, d = +b.dataset.d;
-      E[k] = k === "tplHo" ? Math.min(12, Math.max(1, E[k] + d)) : Math.min(720, Math.max(30, E[k] + d));
+      E[k] = k === "tplHo" ? Math.min(8, Math.max(1, E[k] + d)) : Math.min(720, Math.max(30, E[k] + d));
       redraw();
     }));
     f.querySelectorAll("[data-make]").forEach((b) => (b.onclick = () => { E.segments = makeTemplate(E, b.dataset.make); E.hoMax = Math.max(E.hoMax, E.tplHo); redraw(); }));
     f.querySelectorAll(".seg").forEach((li) => {
-      const i = +li.dataset.i, g = E.segments[i];
+      const g = E.segments[+li.dataset.i];
+      li.querySelectorAll("[data-line]").forEach((b) => (b.onclick = () => { g.line = b.dataset.line; redraw(); }));
+      li.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => { g.step = Math.max(1, g.step + +b.dataset.step); redraw(); }));
       li.querySelectorAll("[data-role]").forEach((c) => (c.onchange = () => {
         const r = c.dataset.role;
         if (r === "全員") g.roles = c.checked ? ["全員"] : [];
         else g.roles = [...new Set([...g.roles.filter((x) => x !== "全員" && x !== r), ...(c.checked ? [r] : [])])].sort((a, b) => roleOpts.indexOf(a) - roleOpts.indexOf(b));
         redraw();
       }));
-      li.querySelectorAll("[data-dep]").forEach((c) => (c.onchange = () => {
-        const j = +c.dataset.dep;
-        g.after = c.checked ? [...new Set([...g.after, j])].sort((a, b) => a - b) : g.after.filter((x) => x !== j);
-        redraw();
-      }));
       li.querySelectorAll("[data-dur]").forEach((b) => (b.onclick = () => { g.minutes = Math.min(720, Math.max(30, g.minutes + +b.dataset.dur)); redraw(); }));
       li.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { g.minutes = +b.dataset.set; redraw(); }));
-      li.querySelectorAll("[data-mv]").forEach((b) => (b.onclick = () => {
-        const j = i + +b.dataset.mv; if (j < 0 || j >= E.segments.length) return;
-        [E.segments[i], E.segments[j]] = [E.segments[j], E.segments[i]];
-        remap((x) => (x === i ? j : x === j ? i : x));
-        redraw();
-      }));
-      $("[data-rm]", li).onclick = () => {
-        // 消すパートの後に続いていたパートは、消すパートの「先に終わらせる」を引き継ぐ
-        E.segments.forEach((x) => { if (x.after.includes(i)) x.after = [...new Set([...x.after.filter((j) => j !== i), ...g.after])]; });
-        E.segments.splice(i, 1); remap((x) => (x === i ? null : x > i ? x - 1 : x)); redraw(); };
+      $("[data-rm]", li).onclick = () => { E.segments.splice(+li.dataset.i, 1); redraw(); };
     });
     f.querySelectorAll("[data-add]").forEach((b) => (b.onclick = () => {
-      const all = E.segments.map((_, i) => i);
-      if (b.dataset.add === "全員") E.segments.push({ roles: ["全員"], minutes: 240, after: all });
+      const last = Math.max(0, ...E.segments.map((g) => g.step));
+      if (b.dataset.add === "全員") E.segments.push({ roles: ["全員"], minutes: 240, line: "全体", step: last + 1 });
       else {
         const usedHo = E.segments.flatMap((g) => g.roles).filter((r) => /^HO\d+$/.test(r));
         const next = Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`).find((r) => !usedHo.includes(r));
-        E.segments.push({ roles: next ? ["KP", next] : ["KP"], minutes: 60, after: [] });
+        E.segments.push({ roles: next ? ["KP", next] : ["KP"], minutes: 60, line: "A", step: Math.max(1, last) });
       }
       redraw();
     }));
@@ -1207,7 +1218,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     $("#sf-spec-go").onclick = () => {
       const segs = parseSpec($("#sf-spec").value);
       if (!segs.length) { toast("役職（KP、HO1、全員など）と（1時間）のような時間を続けて書いてください"); return; }
-      E.segments = segs.map((g, i) => ({ roles: g.roles, minutes: g.minutes, after: i ? [i - 1] : [] }));
+      E.segments = segs.map((g, i) => ({ roles: g.roles, minutes: g.minutes, line: "全体", step: i + 1 }));
       E.hoMax = Math.max(E.hoMax, ...segs.flatMap((g) => g.roles.map(hoNum)));
       redraw();
     };
@@ -1215,12 +1226,9 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     $("#sf-reset")?.addEventListener("click", () => { S.ed = newEditor(); renderEditor(); });
     f.onsubmit = async (e) => {
       e.preventDefault(); keep();
-      // 役職が空のパートは除き、番号を詰め直す
-      const keepIdx = E.segments.map((g, i) => (g.roles.length ? i : -1)).filter((i) => i >= 0);
-      const segments = keepIdx.map((i) => {
-        const g = E.segments[i];
-        return { label: g.roles.join(""), roles: g.roles, minutes: g.minutes, after: g.after.filter((j) => keepIdx.includes(j)).map((j) => keepIdx.indexOf(j)) };
-      });
+      // 空いた段番号を詰める
+      const stepsUsed = [...new Set(E.segments.filter((g) => g.roles.length).map((g) => g.step))].sort((a, b) => a - b);
+      const segments = E.segments.filter((g) => g.roles.length).map((g) => ({ label: g.roles.join(""), roles: g.roles, minutes: g.minutes, line: g.line, step: stepsUsed.indexOf(g.step) + 1 }));
       if (!E.name.trim()) { toast("シナリオ名を入れてください"); return; }
       if (!segments.length) { toast("役職を選んだパートを1つ以上作ってください"); return; }
       const doc = { name: E.name.trim(), spec: specOf(segments), segments, note: E.note.trim() };
@@ -1295,7 +1303,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     sortAll(); renderAll();
   })();
 
-  window.__takubiyori = { makeTemplate, depsOf, parseCommentsBlock, tableTextFromHtml, parseTimeRules, windowOf, parseDensuke, parseSpec, plansFor, roleOf, displayName, dayRows, discordText };
+  window.__takubiyori = { makeTemplate, depsOf, normSegs, parseCommentsBlock, tableTextFromHtml, parseTimeRules, windowOf, parseDensuke, parseSpec, plansFor, roleOf, displayName, dayRows, discordText };
 })();
 </script>
 
