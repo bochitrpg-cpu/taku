@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6f5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="卓日和">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f6f5c'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='sans-serif'%3E卓%3C/text%3E%3C/svg%3E">
+<style>[hidden]{display:none!important} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0;font-size:14px}</style>
+<title>卓日和</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: 一枚の卓日誌。上に今後のセッション、下にタブで集計・確定日・シナリオ */
+:root {
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --ink: #1d2422;
+  --muted: #5d6a66;
+  --line: #d9dfdc;
+  --accent: #1f6f5c;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcefe8;
+  --ok: #1f6f5c;
+  --ok-bg: #d6efe6;
+  --maybe: #9a6400;
+  --maybe-bg: #fbecc8;
+  --ng: #a33a3a;
+  --ng-bg: #f6dcdc;
+  --hl: #e9f6f0;
+  --hl-weak: #fbf5e3;
+  --f-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --f-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121615; --surface: #1a201e; --ink: #e6ece9; --muted: #9aa8a3; --line: #2e3734;
+    --accent: #4fbf9f; --accent-ink: #0d1a16; --accent-soft: #1d3a31;
+    --ok: #6fd3b3; --ok-bg: #173a2f; --maybe: #f0b84a; --maybe-bg: #3a2e12; --ng: #f08a8a; --ng-bg: #3d1d1d;
+    --hl: #18302a; --hl-weak: #2c2715; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121615; --surface: #1a201e; --ink: #e6ece9; --muted: #9aa8a3; --line: #2e3734;
+  --accent: #4fbf9f; --accent-ink: #0d1a16; --accent-soft: #1d3a31;
+  --ok: #6fd3b3; --ok-bg: #173a2f; --maybe: #f0b84a; --maybe-bg: #3a2e12; --ng: #f08a8a; --ng-bg: #3d1d1d;
+  --hl: #18302a; --hl-weak: #2c2715; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 48px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: 30px; margin: 0; letter-spacing: .02em; }
+.sub { color: var(--muted); font-size: 13px; }
+h2 { font-size: 17px; margin: 0; text-wrap: balance; }
+h3 { font-size: 15px; margin: 0; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.notice { border: 1px dashed var(--line); border-radius: 8px; padding: 10px 12px; color: var(--muted); font-size: 13px; }
+.notice.warn { border-color: var(--maybe); color: var(--maybe); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 999px; font-size: 13px; z-index: 20; }
+
+/* 次回セッション */
+.next { display: grid; gap: 10px; }
+.next-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; min-width: 0; }
+.sess-date { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sess-day { font-family: var(--f-mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sess-time { font-family: var(--f-mono); color: var(--muted); }
+.sess-title { font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.chip.warn { background: var(--maybe-bg); color: var(--maybe); }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+button, .btn {
+  font: inherit; font-size: 13px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  padding: 5px 10px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; line-height: 1.4;
+}
+button:hover, .btn:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+button.danger { color: var(--ng); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* タブ */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: none; border-bottom: 3px solid transparent; border-radius: 0; background: none; padding: 8px 14px; font-size: 14px; color: var(--muted); white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 700; }
+.panel { display: grid; gap: 14px; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, input[type="text"], input[type="datetime-local"], textarea {
+  font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%;
+}
+textarea { width: 100%; min-height: 140px; font-family: var(--f-mono); font-size: 12px; }
+label.tog { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+
+/* 集計 */
+.summary { display: grid; gap: 6px; }
+.best { display: flex; flex-wrap: wrap; gap: 6px; }
+.best .slot { font-family: var(--f-mono); font-size: 13px; padding: 3px 10px; border-radius: 6px; background: var(--ok-bg); color: var(--ok); font-weight: 600; }
+.best .slot.weak { background: var(--maybe-bg); color: var(--maybe); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table.grid { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.grid th, table.grid td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; white-space: nowrap; }
+table.grid thead th { font-weight: 500; color: var(--muted); position: sticky; top: 0; background: var(--surface); }
+table.grid th.req { color: var(--ink); font-weight: 700; }
+table.grid td.label, table.grid th.label { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+table.grid tr.all td { background: var(--hl); }
+table.grid tr.weak td { background: var(--hl-weak); }
+table.grid tr.all td.label, table.grid tr.weak td.label { background: inherit; }
+table.grid tr.all td.label { box-shadow: inset 3px 0 0 var(--ok); }
+table.grid tr.weak td.label { box-shadow: inset 3px 0 0 var(--maybe); }
+td.m { font-weight: 700; width: 44px; }
+td.m.o { color: var(--ok); } td.m.d { color: var(--maybe); } td.m.x { color: var(--ng); opacity: .8; } td.m.n { color: var(--muted); }
+td.m.dim { opacity: .35; }
+.count { font-family: var(--f-mono); color: var(--muted); }
+
+/* 確定フォーム */
+.confirm-form { display: grid; gap: 10px; border: 1px solid var(--accent); border-radius: 10px; padding: 14px 16px; background: var(--surface); }
+.confirm-form .grid2 { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.field { display: grid; gap: 2px; font-size: 12px; color: var(--muted); min-width: 0; }
+.field input, .field select { width: 100%; }
+
+.import { display: grid; gap: 8px; }
+details > summary { cursor: pointer; font-weight: 700; }
+.past .card { opacity: .75; }
+.scen-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.pick { display: flex; flex-wrap: wrap; gap: 4px; }
+.pick label { font-size: 13px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+.pick input { margin: 0; }
+.pick label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); }
+.copybox { width: 100%; min-height: 110px; }
+.best .slot.night { background: var(--accent-soft); color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); }
+.mk { font-weight: 700; } .mk.w, td.m.w { color: var(--ok); } .mk.o { color: var(--ok); } .mk.d { color: var(--maybe); } .mk.x { color: var(--ng); }
+td.m.w { font-size: 15px; }
+.role { display: inline-block; font-family: var(--f-mono); font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 4px; background: var(--accent-soft); color: var(--ink); }
+.has-memo { color: var(--maybe); font-weight: 700; margin-left: 2px; }
+td.count.full { color: var(--ok); font-weight: 600; }
+.nowrap { white-space: nowrap; }
+.memo { border-left: 3px solid var(--maybe); background: var(--surface); padding: 8px 12px; border-radius: 0 8px 8px 0; display: grid; gap: 2px; font-size: 13px; }
+.memo h3 { font-size: 13px; color: var(--maybe); }
+.memo-name { font-weight: 700; margin-right: 8px; }
+.memo-row { display: flex; flex-wrap: wrap; gap: 2px 14px; align-items: baseline; }
+.memo-label { color: var(--muted); font-size: 12px; min-width: 6em; }
+.memo-item { white-space: nowrap; }
+.memo-edit { display: grid; gap: 4px; }
+.slot.cand { font: inherit; font-family: var(--f-mono); font-size: 13px; padding: 3px 10px; border-radius: 6px; border: 1px dashed var(--maybe); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; }
+.pend { font-size: 12px; color: var(--maybe); font-family: var(--f-body); }
+table.grid tr.cand td { background: var(--hl-weak); }
+table.grid tr.cand td.label { background: inherit; box-shadow: inset 3px 0 0 var(--line); }
+td.m.n { color: var(--maybe); }
+.card.tentative { border-style: dashed; border-color: var(--maybe); }
+.quick { display: grid; gap: 6px; }
+button.big { font-size: 15px; padding: 10px 14px; justify-content: center; }
+.backup { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; }
+.bulk { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
+.gcal-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.quick textarea { min-height: 52px; font-family: var(--f-body); font-size: 14px; border: 2px dashed var(--accent); background: var(--surface); }
+.bm { border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; background: var(--accent-soft); display: grid; gap: 6px; }
+.bm-steps { margin: 6px 0; padding-left: 1.4em; display: grid; gap: 4px; }
+.memo-line { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.memo-line .memo-name { min-width: 6em; }
+.memo-line input { flex: 1; min-width: 160px; font-size: 13px; padding: 3px 8px; }
+.narrow { display: block; font-family: var(--f-mono); font-size: 10px; font-weight: 400; color: var(--muted); line-height: 1.3; }
+.plans { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.steps { margin: 0; padding-left: 1.4em; display: grid; gap: 2px; font-size: 13px; }
+.tplitem { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.arrow { color: var(--muted); font-size: 12px; }
+.tpl { display: grid; gap: 6px; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); }
+.stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.stepper button { border: none; padding: 3px 10px; font-size: 15px; background: none; }
+.stepper .mono { min-width: 5.5em; text-align: center; font-size: 13px; }
+.segs { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.seg { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: grid; gap: 6px; background: var(--bg); }
+.seg-head { display: flex; gap: 8px; align-items: flex-start; }
+.seg-no { flex: none; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 12px; font-weight: 600; }
+.seg-foot { gap: 6px; }
+.seg-move { margin-left: auto; display: inline-flex; gap: 4px; }
+button.quick { padding: 3px 8px; font-family: var(--f-mono); }
+button.quick.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <h1>卓日和</h1>
+    <span class="sub">伝助の結果を取り込んで、セッション日を決めてカレンダーへ</span>
+  </header>
+
+  <div id="status" class="notice" hidden></div>
+
+  <section class="next" aria-labelledby="next-h">
+    <h2 id="next-h">次のセッション</h2>
+    <div id="next-list" class="next-list"></div>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-tally" aria-selected="true" data-tab="tally">集計</button>
+    <button role="tab" id="tab-sessions" aria-selected="false" data-tab="sessions">確定日</button>
+    <button role="tab" id="tab-scenarios" aria-selected="false" data-tab="scenarios">シナリオ</button>
+  </nav>
+
+  <section class="panel" id="panel-tally"></section>
+  <section class="panel" id="panel-sessions" hidden></section>
+  <section class="panel" id="panel-scenarios" hidden></section>
+  <details class="backup small">
+    <summary>データのバックアップ</summary>
+    <div class="muted">データはこのスマホのブラウザの中だけに保存されています。機種変更やブラウザのデータ削除の前にバックアップを保存してください。</div>
+    <div class="row"><button type="button" id="bk-save">バックアップを保存</button><label class="btn">バックアップから復元<input type="file" id="bk-load" accept=".json,application/json" hidden></label></div>
+    <div id="bk-msg"></div>
+  </details>
+</div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+(() => {
+  // ---------- 状態 ----------
+  const S = {
+    db: null, downloads: null, canWrite: true,
+    polls: [], scenarios: [], sessions: [],
+    pollId: null, scenarioId: "", confirm: null,
+    importOpen: false, tab: "tally",
+  };
+  // 伝助の記号の意味: ◎=昼と夜 / ○=昼のみ / △=夜のみ / ×=不可
+  const BLOCKS = { day: { key: "day", label: "昼", s: 13 * 60, e: 18 * 60 }, night: { key: "night", label: "夜", s: 21 * 60, e: 24 * 60 } };
+  const BLOCK_ORDER = ["day", "night"];
+  const MARK_BLOCKS = { w: ["day", "night"], o: ["day"], d: ["night"], x: [], n: [] };
+  const MARK_SYM = { w: "◎", o: "○", d: "△", x: "×", n: "?" };
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const ls = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2400);
+  }
+  function status(msg, warn) {
+    const el = $("#status"); el.hidden = !msg; el.textContent = msg || ""; el.classList.toggle("warn", !!warn);
+  }
+
+  // ---------- 伝助CSV / 表の解析 ----------
+  function parseCSV(text) {
+    const rows = []; let row = [], cell = "", q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; }
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+  function splitTable(text) {
+    text = text.replace(/^\uFEFF/, "");
+    const rows = text.includes("\t") ? text.split(/\r?\n/).map((l) => l.split("\t")) : parseCSV(text);
+    return rows.map((r) => r.map((c) => c.trim())).filter((r) => r.some((c) => c !== ""));
+  }
+  const BOOKMARKLET = "javascript:(()=>{const D=/(\\d{1,2})\\s*[\\/月]\\s*(\\d{1,2})/;const tx=c=>{const n=c.cloneNode(true);n.querySelectorAll('img').forEach(i=>i.replaceWith(i.alt||i.title||''));n.querySelectorAll('br').forEach(b=>b.replaceWith(' '));return(n.textContent||'').replace(/\\s+/g,' ').trim()};let best=null,bt=null,bs=0;document.querySelectorAll('table').forEach(t=>{const r=[...t.rows].map(x=>[...x.cells].map(tx));const s=r.filter(x=>D.test(x[0]||'')).length+(r[0]||[]).filter(v=>D.test(v)).length;if(s>bs){bs=s;best=r;bt=t}});if(!best){alert('伝助の出欠表が見つかりませんでした');return}const all=document.body.innerText||'';const last=bt.rows[bt.rows.length-1];const lt=(last.innerText||'').trim().split('\\n').pop().split('\\t').pop().trim();let i=lt?all.lastIndexOf(lt):-1;const after=i>=0?all.slice(i+lt.length,i+lt.length+6000):'';const out='#takubiyori\\n'+document.title.replace(/\\s+/g,' ')+'\\n'+best.filter(r=>r.some(Boolean)).map(r=>r.map(v=>v.replace(/\\t/g,' ')).join('\\t')).join('\\n')+'\\n#comments\\n'+after;const ask=()=>prompt('自動コピーできませんでした。この文字を全部コピーしてください',out);navigator.clipboard?navigator.clipboard.writeText(out).then(()=>alert('コピーしました。卓日和の取り込み欄に貼り付けてください'),ask):ask()})()";
+  const DATE_RE = /(?:(\d{4})\s*[\/年.-]\s*)?(\d{1,2})\s*[\/月.-]\s*(\d{1,2})\s*日?/;
+  const isDateish = (s) => DATE_RE.test(s || "");
+  const COMMENT_RE = /^(コメント|備考|メモ)$/;
+  function markOf(s) {
+    s = (s || "").trim();
+    if (/^[◎]/.test(s)) return "w";
+    if (/^[○◯〇oO⭕]/.test(s)) return "o";
+    if (/^[△▲]/.test(s)) return "d";
+    if (/^[×✕✖xXＸ]/.test(s)) return "x";
+    return "n";
+  }
+  function parseDay(label, ref) {
+    const m = label.match(DATE_RE);
+    if (!m) return null;
+    const mon = +m[2], day = +m[3];
+    let y = m[1] ? +m[1] : ref.getFullYear();
+    if (!m[1] && new Date(y, mon - 1, day) < new Date(ref.getTime() - 60 * 864e5)) y += 1;
+    return `${y}-${pad(mon)}-${pad(day)}`;
+  }
+
+  // 伝助のページをコピーしたHTML（または保存したHTML）から出欠表を探して、タブ区切りの文字にする
+  function tableTextFromHtml(html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const cellText = (td) => {
+      const c = td.cloneNode(true);
+      c.querySelectorAll("img").forEach((img) => img.replaceWith(img.getAttribute("alt") || img.getAttribute("title") || ""));
+      c.querySelectorAll("br").forEach((br) => br.replaceWith(" "));
+      return (c.textContent || "").replace(/\s+/g, " ").trim();
+    };
+    let best = null, bestScore = 0;
+    doc.querySelectorAll("table").forEach((t) => {
+      const rows = [...t.rows].map((r) => [...r.cells].flatMap((c) => { const v = cellText(c); return Array(Math.max(1, +c.colSpan || 1)).fill(v).map((x, i) => (i ? "" : x)); }));
+      const score = rows.filter((r) => isDateish(r[0])).length + (rows[0] || []).filter(isDateish).length;
+      if (score > bestScore) { best = rows; bestScore = score; }
+    });
+    if (!best) return null;
+    return best.filter((r) => r.some((c) => c)).map((r) => r.map((c) => c.replace(/\t/g, " ")).join("\t")).join("\n");
+  }
+
+  // 「かき：22:00から」や「かき（改行）22:00から」のようにまとめて貼られたコメントを名前ごとに振り分ける
+  function parseCommentsBlock(text, players) {
+    const keys = players.flatMap((p, k) => [p.name, displayName(p.name)].filter(Boolean).map((key) => ({ key: key.normalize("NFKC"), k })))
+      .sort((a, b) => b.key.length - a.key.length);
+    const out = {};
+    let cur = null;
+    let src = (text || "").normalize("NFKC");
+    // 伝助のページなら「【コメント】」から「通知の設定」までがコメント欄
+    const ci = src.indexOf("【コメント】");
+    if (ci >= 0) src = src.slice(ci + 6);
+    src = src.split(/通知の設定|このページについての情報|「伝助」の使い方/)[0];
+    for (let line of src.split(/\r?\n/)) {
+      line = line.replace(/^[\s・●■◆\-*>]+/, "").trim();
+      // 伝助の書式「(KPさし) 10/27は22:00- [10/21 08:05]」
+      line = line.replace(/\s*\[\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}\]\s*$/, "").replace(/^\(([^)]+)\)\s*/, "$1 ");
+      if (!line) { cur = null; continue; }
+      if (/^(コメント|備考)\s*[:：]?$/.test(line) || /^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}[ T]\d{1,2}:\d{2}/.test(line)) continue;
+      const hit = keys.find(({ key }) => line.startsWith(key));
+      if (hit) {
+        cur = hit.k;
+        const rest = line.slice(hit.key.length).replace(/^[\s:：、,\-ー「(（]+/, "").replace(/[」)）]$/, "").trim();
+        if (rest) out[cur] = out[cur] ? `${out[cur]} ${rest}` : rest;
+      } else if (cur != null) out[cur] = out[cur] ? `${out[cur]} ${line}` : line;
+    }
+    return out;
+  }
+
+  function parseDensuke(text, ref = new Date()) {
+    let rows = splitTable(text);
+    let title = "";
+    while (rows.length && rows[0].filter((c) => c).length < 2) { title = title || rows[0].find((c) => c) || ""; rows.shift(); }
+    if (rows.length < 2) throw new Error("表として読み取れませんでした。伝助のCSVか、表をそのままコピーしたものを貼ってください。");
+    // 日程が横に並んでいる場合は転置する
+    const colDates = rows.slice(1).filter((r) => isDateish(r[0])).length;
+    const rowDates = rows[0].slice(1).filter(isDateish).length;
+    if (rowDates > colDates) {
+      const w = Math.max(...rows.map((r) => r.length));
+      rows = Array.from({ length: w }, (_, j) => rows.map((r) => r[j] || ""));
+    }
+    const header = rows[0];
+    const cols = [];
+    // 伝助の表には記号ごとの人数の列（◎○△×）や、右端にもう一度日付の列があるので除く
+    const numericCol = (j) => rows.slice(1).every((r) => !r[j] || /^\d+$/.test(r[j]) || isDateish(r[j]));
+    header.forEach((h, j) => {
+      if (j === 0 || !h || COMMENT_RE.test(h) || /^(合計|集計)$/.test(h)) return;
+      if (/^[◎○◯〇△▲×✕✖\-−]$/.test(h) || numericCol(j)) return;
+      cols.push(j);
+    });
+    if (!cols.length) throw new Error("参加者の名前が見つかりませんでした。1行目（または1列目）に名前があるか確認してください。");
+    const players = cols.map((j) => ({ name: header[j], marks: [], comment: "" }));
+    const slots = [], notes = [];
+    for (const r of rows.slice(1)) {
+      const label = r[0] || "";
+      if (COMMENT_RE.test(label)) { cols.forEach((j, k) => (players[k].comment = r[j] || "")); continue; }
+      if (!label || /^(合計|集計|○の数)/.test(label)) continue;
+      const date = parseDay(label, ref);
+      // 日付でない行（最終更新日時など）は備考として残す
+      if (!date) { const values = cols.map((j) => r[j] || ""); if (values.some((v) => v)) notes.push({ label, values }); continue; }
+      slots.push({ label, date });
+      cols.forEach((j, k) => {
+        players[k].marks.push(markOf(r[j]));
+        // 「○ 22時から」のように記号の後ろに書かれた補足
+        const extra = (r[j] || "").replace(/^[◎○◯〇oO⭕△▲×✕✖xXＸ\-−ー]\s*/, "").trim();
+        if (extra) (players[k].cellNotes ||= {})[slots.length - 1] = extra;
+      });
+    }
+    if (!slots.length) throw new Error("日付の行が見つかりませんでした。");
+    return { title, slots, players, notes };
+  }
+  function fmtNoteValue(v) {
+    const m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[ T](\d{1,2}):(\d{2})/);
+    if (!m) return v;
+    const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    return `${fmtDay(d.toISOString())} ${fmtTime(d.toISOString())}`;
+  }
+
+  // ---------- 役職 ----------
+  function roleOf(name) {
+    const n = (name || "").normalize("NFKC");
+    const m = n.match(/^[\s【\[(（<]*(KP|GM|HO\s*\d+|PL\s*\d+)/i);
+    return m ? m[1].replace(/\s+/g, "").toUpperCase() : "";
+  }
+  function displayName(name) {
+    const n = (name || "").normalize("NFKC");
+    const m = n.match(/^[\s【\[(（<]*(KP|GM|HO\s*\d+|PL\s*\d+)[\s】\]）)>:：_\-・/]*/i);
+    return m && n.length > m[0].length ? n.slice(m[0].length) : name;
+  }
+  // 「KPHO1（1時間）KPHO2（1時間）全員（4時間）」を区切りに分解する
+  function parseSpec(spec) {
+    const src = (spec || "").normalize("NFKC");
+    const segs = [];
+    const re = /([^()]+?)\(\s*(\d+(?:\.\d+)?)\s*(時間|h|H|分|m|min)?\s*\)/g;
+    let m;
+    while ((m = re.exec(src))) {
+      const raw = m[1].replace(/^[\s→>、,・+＋]+|[\s→>、,・+＋]+$/g, "");
+      const roles = [...raw.matchAll(/全員|KP|GM|HO\s*\d+|PL\s*\d+/gi)].map((x) => (x[0] === "全員" ? "全員" : x[0].replace(/\s+/g, "").toUpperCase()));
+      if (!roles.length) continue;
+      const v = +m[2];
+      const minutes = /^(分|m|min)$/.test(m[3] || "") ? v : Math.round(v * 60);
+      segs.push({ label: raw, roles: roles.includes("全員") ? ["全員"] : [...new Set(roles)], minutes });
+    }
+    return segs;
+  }
+  const segText = (g) => `${g.roles.join("+")} ${fmtDur(g.minutes)}`;
+  function fmtDur(min) { const h = Math.floor(min / 60), m = min % 60; return h && m ? `${h}時間${m}分` : h ? `${h}時間` : `${m}分`; }
+
+  // ---------- 日時 ----------
+  const WD = "日月火水木金土";
+  function dateOf(slot) { if (slot.date) return slot.date; if (slot.start) { const d = new Date(slot.start); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; } return null; }
+  function atMin(date, min) { const [y, mo, d] = date.split("-").map(Number); return new Date(y, mo - 1, d, 0, min); }
+  function fmtDay(iso) { const d = new Date(iso); return `${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]})`; }
+  function fmtTime(iso) { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  function fmtEnd(startIso, endIso) { const s = new Date(startIso), e = new Date(endIso); const t = fmtTime(endIso); return e.getDate() !== s.getDate() && t === "00:00" ? "24:00" : t; }
+  function fmtMin(m) { return `${pad(Math.floor(m / 60))}:${pad(m % 60)}`; }
+  function toLocalInput(iso) { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  function utcStamp(iso) { return new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, ""); }
+
+  // ---------- カレンダー / Discord ----------
+  function detailsOf(s) { return [s.tentative && `候補日（${s.pending?.length ? `未定: ${s.pending.join("、")}` : "未確定"}）`, s.scenario && `シナリオ: ${s.scenario}`, s.members?.length && `参加: ${s.members.join("、")}`, s.note].filter(Boolean).join("\n"); }
+  const calTitle = (s) => (s.tentative ? `【候補】${s.title}` : s.title);
+  function gcalUrl(s) {
+    const p = new URLSearchParams({ action: "TEMPLATE", text: calTitle(s), dates: `${utcStamp(s.start)}/${utcStamp(s.end)}`, details: detailsOf(s) });
+    return "https://calendar.google.com/calendar/render?" + p.toString();
+  }
+  function icsText(list) {
+    const e = (t) => String(t || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/[,;]/g, (c) => "\\" + c);
+    const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//takubiyori//JP", "CALSCALE:GREGORIAN"];
+    for (const s of list) {
+      lines.push("BEGIN:VEVENT", `UID:${s.id || s.start}@takubiyori`, `DTSTAMP:${utcStamp(new Date().toISOString())}`,
+        `DTSTART:${utcStamp(s.start)}`, `DTEND:${utcStamp(s.end)}`, `SUMMARY:${e(calTitle(s))}`, `DESCRIPTION:${e(detailsOf(s))}`,
+        "BEGIN:VALARM", "TRIGGER:-PT1H", "ACTION:DISPLAY", `DESCRIPTION:${e(s.title)}`, "END:VALARM", "END:VEVENT");
+    }
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n") + "\r\n";
+  }
+  function discordText(list, heading) {
+    const ts = (iso, f) => `<t:${Math.floor(new Date(iso) / 1000)}:${f}>`;
+    const tent = list.some((s) => s.tentative);
+    const pend = [...new Set(list.flatMap((s) => s.pending || []))];
+    const out = [`**【${tent ? "候補日" : "セッション確定"}】${heading || list[0].title}**`];
+    if (tent && pend.length) out.push(`${pend.join("、")} さんの参加が決まれば確定です`);
+    for (const s of list) {
+      out.push(`${list.length > 1 ? `・${s.part || s.title}　` : "日時: "}${ts(s.start, "F")} 〜 ${ts(s.end, "t")}${list.length > 1 && s.members?.length ? `（${s.members.join("、")}）` : ""}`);
+    }
+    if (list.length === 1 && list[0].members?.length) out.push(`参加: ${list[0].members.join("、")}`);
+    if (list.length === 1 && list[0].note) out.push(list[0].note);
+    return out.join("\n");
+  }
+  async function copyText(text, host) {
+    try { await navigator.clipboard.writeText(text); toast("コピーしました"); }
+    catch {
+      host.innerHTML = `<textarea class="copybox" readonly></textarea><div class="small muted">自動コピーできなかったので、上の文章を選択してコピーしてください。</div>`;
+      const ta = $("textarea", host); ta.value = text; ta.focus(); ta.select();
+    }
+  }
+  async function saveIcs(list, name, host) {
+    const filename = `${name.replace(/[\\/:*?"<>|]/g, "_")}.ics`;
+    if (S.downloads) {
+      try { await S.downloads.save({ filename, data: new Blob([icsText(list)], { type: "text/calendar" }) }); return; }
+      catch (e) { if (e?.code === "declined") return; }
+    }
+    try {
+      const url = URL.createObjectURL(new Blob([icsText(list)], { type: "text/calendar" }));
+      const a = document.createElement("a"); a.href = url; a.download = /^[ -~]+$/.test(filename) ? filename : `takubiyori_${Date.now().toString(36)}.ics`; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return;
+    } catch {}
+    host.innerHTML = `<div class="small muted">ファイルを保存できない環境です。下の内容を「${esc(filename)}」という名前で保存すると、カレンダーに読み込めます。</div><textarea class="copybox" readonly></textarea>`;
+    $("textarea", host).value = icsText(list);
+  }
+
+  // ---------- 判定 ----------
+  // 備考の「22:00から」「23時まで」「夜は22時〜23時半」などを時間の制限として読む
+  const T_RE = String.raw`(\d{1,2})(?:\s*[:：]\s*(\d{2})|\s*時\s*(半|\d{1,2}\s*分)?)`;
+  function toMin(h, mm, han) {
+    let m = +h * 60 + (mm ? +mm : han ? (han === "半" ? 30 : parseInt(han, 10)) : 0);
+    if (+h < 6) m += 24 * 60;
+    return m;
+  }
+  function parseTimeRules(text, slotDates) {
+    const rules = [];
+    const src = (text || "").normalize("NFKC");
+    for (const clause of src.split(/[、,。\n;；]+|\s\/\s/)) {
+      let c = clause;
+      const dates = [];
+      c = c.replace(/(\d{1,2})\s*[\/月]\s*(\d{1,2})\s*日?(?:\s*\([^)]*\))?/g, (_, mo, d) => {
+        const hit = slotDates.find((x) => x && +x.slice(5, 7) === +mo && +x.slice(8, 10) === +d);
+        if (hit) dates.push(hit);
+        return " ";
+      });
+      const block = /昼|午後/.test(c) ? "day" : /夜|晩/.test(c) ? "night" : null;
+      let from = null, until = null, m;
+      if ((m = c.match(new RegExp(T_RE + String.raw`\s*[〜~\-ー－]\s*` + T_RE)))) { from = toMin(m[1], m[2], m[3]); until = toMin(m[4], m[5], m[6]); }
+      else {
+        if ((m = c.match(new RegExp(T_RE + String.raw`\s*(?:から|以降|〜|~|ー|-|スタート|開始|〜?参加)`)))) from = toMin(m[1], m[2], m[3]);
+        if ((m = c.match(new RegExp(T_RE + String.raw`\s*(?:まで|迄|終わり|終了|に抜け|抜け|で落ち|落ち)`)))) until = toMin(m[1], m[2], m[3]);
+      }
+      if (from == null && until == null) continue;
+      rules.push({ dates: dates.length ? dates : null, block, from, until });
+    }
+    return rules;
+  }
+  function rulesOf(poll, p, si) {
+    const dates = poll.slots.map(dateOf);
+    const out = parseTimeRules(p.comment, dates).filter((r) => !r.dates || r.dates.includes(dates[si]));
+    const cn = p.cellNotes?.[si];
+    if (cn) out.push(...parseTimeRules(cn, dates).map((r) => ({ ...r, dates: null })));
+    return out;
+  }
+  // その人がその日のその時間帯に参加できる時間 [開始, 終了]（分）。参加できなければ null
+  // assume=true のときは未定（-）の人を「昼も夜も参加できる」とみなす（候補日の計算用）
+  function windowOf(poll, p, si, block, assume = false) {
+    const mk = p.marks[si] || "n";
+    if (!MARK_BLOCKS[assume && mk === "n" ? "w" : mk].includes(block)) return null;
+    let s = BLOCKS[block].s, e = BLOCKS[block].e;
+    for (const r of rulesOf(poll, p, si)) {
+      let target = r.block;
+      if (!target) {
+        const t = r.from ?? r.until;
+        const inside = BLOCK_ORDER.find((b) => (r.from != null ? t >= BLOCKS[b].s && t < BLOCKS[b].e : t > BLOCKS[b].s && t <= BLOCKS[b].e));
+        target = inside || "both";
+      }
+      if (target !== "both" && target !== block) continue;
+      if (r.from != null) s = Math.max(s, r.from);
+      if (r.until != null) e = Math.min(e, r.until);
+    }
+    return s < e ? [s, e] : null;
+  }
+  const canAt = (poll, p, si, block, assume = false) => !!windowOf(poll, p, si, block, assume);
+  const isPending = (p, si) => (p.marks[si] || "n") === "n";
+  function commonWindow(poll, idx, si, block, assume = false) {
+    let s = BLOCKS[block].s, e = BLOCKS[block].e;
+    for (const i of idx) {
+      const w = windowOf(poll, poll.players[i], si, block, assume);
+      if (!w) return null;
+      s = Math.max(s, w[0]); e = Math.min(e, w[1]);
+    }
+    return s < e ? [s, e] : null;
+  }
+  function membersFor(poll, roles) {
+    if (roles.includes("全員")) return poll.players.map((_, i) => i);
+    return poll.players.map((p, i) => (roles.includes(roleOf(p.name)) ? i : -1)).filter((i) => i >= 0);
+  }
+  function dayRows(poll) {
+    return poll.slots.map((slot, si) => {
+      const res = { si, slot, date: dateOf(slot) };
+      for (const b of BLOCK_ORDER) {
+        const ok = poll.players.filter((p) => canAt(poll, p, si, b)).length;
+        const all = poll.players.length > 0 && ok === poll.players.length;
+        const everyone = poll.players.map((_, i) => i);
+        const pend = poll.players.filter((p) => isPending(p, si)).map((p) => p.name);
+        const candWin = !all && pend.length ? commonWindow(poll, everyone, si, b, true) : null;
+        res[b] = { ok, all, win: all ? commonWindow(poll, everyone, si, b) : null, candWin, pend };
+      }
+      return res;
+    });
+  }
+  // シナリオの区切りを、早い順に空いている時間帯へ詰めていく
+  function windowsOf(poll) {
+    const ws = [];
+    poll.slots.forEach((slot, si) => {
+      const date = dateOf(slot); if (!date) return;
+      for (const b of BLOCK_ORDER) ws.push({ si, date, block: b, s: BLOCKS[b].s, e: BLOCKS[b].e, t0: atMin(date, BLOCKS[b].s).getTime() });
+    });
+    return ws.sort((a, b) => a.t0 - b.t0);
+  }
+  function planFrom(poll, segs, windows, startIdx, assume = false) {
+    const out = [];
+    let wi = startIdx, cursor = null; // cursor: {wi, min}
+    for (const g of segs) {
+      const idx = membersFor(poll, g.roles);
+      let placed = null;
+      for (let k = wi; k < windows.length; k++) {
+        const w = windows[k];
+        const cw = commonWindow(poll, idx, w.si, w.block, assume);
+        if (!cw) continue;
+        const from = Math.max(cw[0], cursor && cursor.wi === k ? cursor.min : w.s);
+        if (from + g.minutes > cw[1]) continue;
+        placed = { k, from };
+        break;
+      }
+      if (!placed) return null;
+      const w = windows[placed.k];
+      out.push({
+        seg: g, date: w.date, block: w.block, si: w.si,
+        start: atMin(w.date, placed.from).toISOString(), end: atMin(w.date, placed.from + g.minutes).toISOString(),
+        members: idx.map((i) => poll.players[i].name),
+        pending: idx.filter((i) => isPending(poll.players[i], w.si)).map((i) => poll.players[i].name),
+      });
+      wi = placed.k; cursor = { wi: placed.k, min: placed.from + g.minutes };
+    }
+    return out;
+  }
+  const planPending = (pl) => [...new Set(pl.flatMap((x) => x.pending || []))];
+  // 確定できる案と、未定の人が参加できれば確定できる候補案
+  function plansBoth(poll, segs) {
+    const sure = plansFor(poll, segs);
+    const keys = new Set(sure.map((pl) => pl.map((x) => x.start).join("|")));
+    const cand = plansFor(poll, segs, 12, true).filter((pl) => !keys.has(pl.map((x) => x.start).join("|")) && planPending(pl).length).slice(0, 4);
+    return { sure, cand };
+  }
+  function plansFor(poll, segs, max = 6, assume = false) {
+    const windows = windowsOf(poll);
+    const plans = [], seen = new Set();
+    for (let i = 0; i < windows.length && plans.length < max; i++) {
+      const p = planFrom(poll, segs, windows, i, assume);
+      if (!p) break;
+      const key = p.map((x) => x.start).join("|");
+      if (!seen.has(key)) { seen.add(key); plans.push(p); }
+    }
+    return plans;
+  }
+
+  // ---------- 集計タブ ----------
+  const currentScenario = () => S.scenarios.find((s) => s.id === S.scenarioId) || null;
+  function slotName(r, b, win) { const w = win || [BLOCKS[b].s, BLOCKS[b].e]; return `${fmtDay(atMin(r.date, 0))} ${BLOCKS[b].label} ${fmtMin(w[0])}–${fmtMin(w[1])}`; }
+
+  function renderTally() {
+    const el = $("#panel-tally");
+    const poll = S.polls.find((p) => p.id === S.pollId) || S.polls[0];
+    if (poll) S.pollId = poll.id;
+    const scen = currentScenario();
+    let html = `<div class="row">
+      <label class="field" style="min-width:220px;flex:1">調整表
+        <select id="poll-sel">${S.polls.map((p) => `<option value="${esc(p.id)}"${p.id === S.pollId ? " selected" : ""}>${esc(p.title)}</option>`).join("") || `<option>（まだありません）</option>`}</select>
+      </label>
+      <label class="field" style="min-width:200px;flex:1">シナリオで組む
+        <select id="scen-sel"><option value="">使わない（全員の空きだけ見る）</option>${S.scenarios.map((s) => `<option value="${esc(s.id)}"${s.id === S.scenarioId ? " selected" : ""}>${esc(s.name)}</option>`).join("")}</select>
+      </label>
+    </div>`;
+    if (S.canWrite) html += `<div class="quick"><button type="button" class="primary big" id="clip-go">コピーした伝助を読み込む</button><textarea id="imp-quick" placeholder="ボタンが使えない時は、ここを長押し → ペースト（同じ名前の表は新しい回答に更新）"></textarea><div id="quick-msg" class="small"></div></div>`;
+    html += `<details class="import" id="imp"${S.importOpen || !S.polls.length ? " open" : ""}><summary>そのほかの取り込み方・ブックマークの準備</summary>
+      <div class="bm small"><b>スマホで一番手軽な方法</b>：伝助のページで「卓日和にコピー」ブックマークをタップ → この欄に貼り付けるだけで、コメントごと自動で取り込まれます。
+        <details><summary>ブックマークの準備（最初の1回だけ）</summary>
+          <ol class="bm-steps">
+            <li>下のボタンでブックマーク用の文字をコピーします。</li>
+            <li>ブラウザでこのページか好きなページをブックマークし、名前を「卓日和にコピー」に、URLをコピーした文字に置き換えて保存します。</li>
+            <li>iPhone（Safari）：伝助のページでブックマーク一覧から「卓日和にコピー」をタップ。<br>Android（Chrome）：伝助のページでアドレスバーに「卓日和にコピー」と打ち、候補に出たブックマークをタップ。</li>
+          </ol>
+          <div class="row"><button type="button" id="bm-copy">ブックマーク用の文字をコピー</button></div>
+          <div id="bm-host"></div>
+        </details>
+      </div>
+      <div class="small muted"><b>ほかの方法</b>：伝助のCSVを選び、コメントは下の「コメント」欄にまとめて貼り付けても取り込めます。パソコンなら伝助のページを全選択コピーして貼るだけでも読めます。</div>
+      <div class="small muted" hidden><b>スマホなら</b>：伝助のCSVファイルを選び、コメントは下の「コメント」欄に「名前：内容」の形でまとめて貼り付けてください（伝助のコメント欄をそのままコピーしても、名前を見つけて振り分けます）。<br><b>パソコンなら</b>：伝助の出欠表ページを全選択（Ctrl+A / ⌘A）してコピーし、上の欄に貼るとコメントごと読めます。自分が参加者の立場の調整でも同じように使えます。</div>
+      <div class="row"><input type="file" id="imp-file" accept=".csv,.txt,.html,.htm,text/csv,text/plain,text/html"></div>
+      <textarea id="imp-text" placeholder="ここに貼り付け（ブックマークでコピーした内容なら自動で取り込みます）"></textarea>
+      <label class="field">コメント（任意・まとめて貼り付けOK）<textarea id="imp-comments" style="min-height:80px" placeholder="かき：22:00から&#10;あい：10/22は23時まで"></textarea></label>
+      <div class="row"><input type="text" id="imp-title" placeholder="調整表の名前（例: 〇〇卓 11月）" style="flex:1;min-width:200px"><button class="primary" id="imp-go">取り込む</button></div>
+      <div id="imp-msg" class="small"></div>
+    </details>`;
+
+    if (!poll) {
+      html += `<div class="notice">まだ調整表がありません。上の欄に伝助のコピーを貼り付けると、全員が参加できる時間帯がここに表示されます。</div>`;
+      el.innerHTML = html; bindTally(); return;
+    }
+    const rows = dayRows(poll);
+    const comments = poll.players.filter((p) => p.comment);
+    const hasCellNotes = poll.players.some((p) => p.cellNotes && Object.keys(p.cellNotes).length);
+
+    if (scen) html += planSectionHtml(poll, scen);
+    else {
+      const good = [];
+      rows.forEach((r) => BLOCK_ORDER.forEach((b) => r[b].win && good.push({ r, b })));
+      const cands = [];
+      rows.forEach((r) => BLOCK_ORDER.forEach((b) => r[b].candWin && cands.push({ r, b })));
+      html += `<div class="summary"><h2>全員（${poll.players.length}人）が参加できる時間帯</h2>`;
+      html += good.length
+        ? `<div class="best">${good.map(({ r, b }) => `<span class="slot${b === "night" ? " night" : ""}">${slotName(r, b, r[b].win)}</span>`).join("")}</div>`
+        : `<div class="notice">全員が揃う時間帯はありません。${cands.length ? "下の候補日を確認してください。" : "下の表で人数の多い時間帯を確認してください。"}</div>`;
+      if (cands.length) {
+        html += `<h3>候補日 <span class="small muted">未定の人が参加できれば確定できる時間帯</span></h3>
+          <div class="best">${cands.map(({ r, b }) => `<button type="button" class="slot cand" data-cand="${r.si}" data-block="${b}">${slotName(r, b, r[b].candWin)}<span class="pend">未定: ${esc(r[b].pend.map(displayName).join("、"))}</span></button>`).join("")}</div>`;
+      }
+      html += `</div>`;
+    }
+
+    const notes = Array.isArray(poll.notes) ? poll.notes : [];
+    if (S.canWrite) {
+      html += `<div class="memo"><h3>備考（時間の条件はここから読み取ります）</h3>
+        <div class="small muted">例:「22:00から」「23時まで」「夜は22時〜23時半」「10/25は21時半から」。日付を書くとその日だけ、書かなければ全日程に当てはめます。</div>
+        <details class="small"><summary>コメントをまとめて貼り付ける</summary>
+          <textarea id="memo-bulk" style="min-height:80px;margin-top:6px" placeholder="かき：22:00から&#10;あい：10/22は23時まで"></textarea>
+          <div class="row"><button type="button" id="memo-bulk-go">振り分けて保存</button><span id="memo-bulk-msg" class="small muted"></span></div>
+        </details>
+        <div class="memo-edit">${poll.players.map((p, k) => {
+          const rs = parseTimeRules(p.comment, poll.slots.map(dateOf));
+          return `<label class="memo-line"><span class="memo-name">${esc(p.name)}</span><input type="text" data-memo="${k}" value="${esc(p.comment || "")}" placeholder="なし"><span class="small muted">${rs.map(ruleText).join(" / ")}</span></label>`;
+        }).join("")}</div></div>`;
+    }
+    if ((!S.canWrite && comments.length) || notes.length || hasCellNotes) {
+      html += `<div class="memo"><h3>備考</h3>`;
+      poll.players.forEach((p) => Object.entries(p.cellNotes || {}).forEach(([si, t]) => {
+        const sl = poll.slots[+si]; if (sl) html += `<div><span class="memo-name">${esc(p.name)}</span><span class="mono small">${fmtDay(atMin(dateOf(sl), 0))}</span> ${esc(t)}</div>`;
+      }));
+      if (!S.canWrite && comments.length) html += comments.map((p) => `<div><span class="memo-name">${esc(p.name)}</span>${esc(p.comment)}</div>`).join("");
+      html += notes.map((n) => `<div class="memo-row"><span class="memo-label">${esc(n.label)}</span>${poll.players.map((p, k) => n.values[k] ? `<span class="memo-item"><span class="memo-name">${esc(displayName(p.name))}</span><span class="mono">${esc(fmtNoteValue(n.values[k]))}</span></span>` : "").join("")}</div>`).join("");
+      html += `</div>`;
+    }
+    if (S.confirm && S.confirm.kind === "single" && poll.slots[S.confirm.si]) html += confirmFormHtml(poll, S.confirm.si, S.confirm.block, S.confirm.tentative);
+
+    html += `<div class="legend small"><span><b class="mk w">◎</b> 昼＋夜</span><span><b class="mk o">○</b> 昼 13:00–18:00</span><span><b class="mk d">△</b> 夜 21:00–24:00</span><span><b class="mk x">×</b> 参加できない</span><span><b class="mk n">?</b> 未定（「-」のまま）</span></div>`;
+    html += `<div class="tablewrap"><table class="grid"><thead><tr><th class="label">日付</th>${poll.players.map((p) => {
+      const r = roleOf(p.name);
+      return `<th${p.comment ? ` title="${esc(p.comment)}"` : ""}>${r ? `<span class="role">${esc(r)}</span><br>` : ""}${esc(r ? displayName(p.name) : p.name)}${p.comment ? `<span class="has-memo" aria-label="備考あり">*</span>` : ""}</th>`;
+    }).join("")}<th>昼</th><th>夜</th>${S.canWrite ? "<th></th>" : ""}</tr></thead><tbody>`;
+    rows.forEach((r) => {
+      const cls = r.day.all && r.night.all ? "all" : r.day.all || r.night.all ? "weak" : r.day.candWin || r.night.candWin ? "cand" : "";
+      html += `<tr class="${cls}"><td class="label"><span class="mono">${fmtDay(atMin(r.date, 0))}</span>${r.slot.label.replace(/\s/g, "") === fmtDay(atMin(r.date, 0)) ? "" : ` <span class="small muted">${esc(r.slot.label)}</span>`}</td>`;
+      poll.players.forEach((p) => {
+        const m = p.marks[r.si] || "n", cn = p.cellNotes?.[r.si];
+        const narrowed = BLOCK_ORDER.map((b) => {
+          if (!MARK_BLOCKS[m].includes(b)) return "";
+          const w = windowOf(poll, p, r.si, b);
+          if (w && w[0] === BLOCKS[b].s && w[1] === BLOCKS[b].e) return "";
+          return w ? `${fmtMin(w[0])}–${fmtMin(w[1]).replace(/:00$/, "")}` : `${BLOCKS[b].label}不可`;
+        }).filter(Boolean);
+        html += `<td class="m ${m}"${cn ? ` title="${esc(cn)}"` : ""}>${MARK_SYM[m]}${cn ? `<span class="has-memo">*</span>` : ""}${narrowed.length ? `<span class="narrow">${narrowed.join("<br>")}</span>` : ""}</td>`;
+      });
+      for (const b of BLOCK_ORDER) html += `<td class="count${r[b].all ? " full" : ""}">${r[b].ok}/${poll.players.length}</td>`;
+      if (S.canWrite) html += `<td class="nowrap"><button data-confirm="${r.si}" data-block="day">昼で確定</button> <button data-confirm="${r.si}" data-block="night">夜で確定</button></td>`;
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+    if (S.canWrite) html += `<div class="row"><span class="small muted">取り込み日: ${poll.createdAt ? fmtDay(poll.createdAt) : "−"}</span><span id="poll-del-host"><button class="danger" id="poll-del">この調整表を削除</button></span></div>`;
+    el.innerHTML = html;
+    bindTally(poll, scen);
+  }
+
+  function ruleText(r) {
+    const d = r.dates ? r.dates.map((x) => fmtDay(atMin(x, 0))).join("・") + " " : "";
+    const b = r.block ? BLOCKS[r.block].label + " " : "";
+    return `→ ${d}${b}${r.from != null ? fmtMin(r.from) : ""}〜${r.until != null ? fmtMin(r.until) : ""}`;
+  }
+  function planSectionHtml(poll, scen) {
+    const segs = scen.segments || [];
+    let html = `<div class="summary"><h2>「${esc(scen.name)}」の組み方</h2><div class="small muted">${segs.map((g) => esc(segText(g))).join(" → ")}</div>`;
+    const roles = new Set(poll.players.map((p) => roleOf(p.name)).filter(Boolean));
+    const missing = [...new Set(segs.flatMap((g) => g.roles))].filter((r) => r !== "全員" && !roles.has(r));
+    if (missing.length) html += `<div class="notice warn">伝助の表に ${missing.map(esc).join("、")} が付いた名前が見つかりません。名前の頭に「KP」「HO1」のように付けると判定できます。</div>`;
+    if (!segs.length) { html += `<div class="notice warn">シナリオの構成が読み取れません。シナリオタブで「KPHO1（1時間）全員（4時間）」のように入力してください。</div></div>`; return html; }
+    const { sure, cand } = missing.length ? { sure: [], cand: [] } : plansBoth(poll, segs);
+    if (!sure.length && !cand.length && !missing.length) html += `<div class="notice">この順番で全部の時間を確保できる組み方が見つかりませんでした。</div>`;
+    const card = (pl, key, label, tentative) => `<article class="card plan${tentative ? " tentative" : ""}" data-plan="${key}">
+      <h3>${label}　<span class="mono small muted">${fmtDay(pl[0].start)} 〜 ${fmtDay(pl[pl.length - 1].start)}</span></h3>
+      ${tentative ? `<div class="pend">未定: ${esc(planPending(pl).map(displayName).join("、"))} が参加できれば確定</div>` : ""}
+      <ol class="steps">${pl.map((x) => `<li><span class="mono">${fmtDay(x.start)} ${fmtTime(x.start)}–${fmtEnd(x.start, x.end)}</span> <b>${esc(x.seg.roles.join("+"))}</b> <span class="small muted">${esc(x.members.map(displayName).join("、"))}</span></li>`).join("")}</ol>
+      <div class="actions">${S.canWrite ? (tentative ? `<button data-plan-ok>候補日として登録</button>` : `<button class="primary" data-plan-ok>この案で確定</button>`) : ""}<button data-plan-copy>Discord用にコピー</button></div>
+      <div data-host></div></article>`;
+    if (sure.length) html += `<div class="plans">${sure.map((pl, i) => card(pl, "s" + i, `案${i + 1}`, false)).join("")}</div>`;
+    if (cand.length) html += `<h3>候補 <span class="small muted">未定の人が参加できれば組める案</span></h3><div class="plans">${cand.map((pl, i) => card(pl, "c" + i, `候補${i + 1}`, true)).join("")}</div>`;
+    html += `</div>`;
+    return html;
+  }
+
+  function confirmFormHtml(poll, si, block, tentative = false) {
+    const date = dateOf(poll.slots[si]);
+    const memberIdx = poll.players.map((p, i) => (canAt(poll, p, si, block, tentative) ? i : -1)).filter((i) => i >= 0);
+    const win = commonWindow(poll, memberIdx, si, block, tentative) || [BLOCKS[block].s, BLOCKS[block].e];
+    const start = atMin(date, win[0]).toISOString(), end = atMin(date, win[1]).toISOString();
+    const members = memberIdx.map((i) => poll.players[i].name);
+    return `<form class="confirm-form" id="cf">
+      <h3>${fmtDay(start)} ${BLOCKS[block].label}のセッションを${tentative ? "候補日として登録する" : "確定する"}</h3>
+      ${tentative ? `<div class="pend">未定: ${esc(poll.players.filter((p) => isPending(p, si)).map((p) => p.name).join("、"))}（参加が決まったら確定日タブで「確定にする」を押してください）</div>` : ""}
+      <div class="grid2">
+        <label class="field">タイトル<input type="text" id="cf-title" value="${esc(poll.title)}" required></label>
+        <label class="field">シナリオ<input type="text" id="cf-scen" value=""></label>
+        <label class="field">開始<input type="datetime-local" id="cf-start" value="${toLocalInput(start)}" required></label>
+        <label class="field">終了<input type="datetime-local" id="cf-end" value="${toLocalInput(end)}" required></label>
+      </div>
+      <div class="field">参加者<div class="pick">${poll.players.map((p) => `<label><input type="checkbox" name="cf-mem" value="${esc(p.name)}"${members.includes(p.name) ? " checked" : ""}>${esc(p.name)}</label>`).join("")}</div></div>
+      <label class="field">メモ<input type="text" id="cf-note" placeholder="例: ココフォリアの部屋URL、持ち物など"></label>
+      <div class="row"><button class="primary" type="submit">${tentative ? "候補日に追加" : "確定日に追加"}</button><button type="button" id="cf-cancel">やめる</button></div>
+    </form>`;
+  }
+
+  function planSessions(poll, scen, plan, tentative = false) {
+    return plan.map((x) => ({
+      ...(tentative ? { tentative: true, pending: x.pending || [] } : {}),
+      title: `${scen.name} ${x.seg.label}`, part: x.seg.label, scenario: scen.name,
+      start: x.start, end: x.end, members: x.members, note: "", pollId: poll.id, createdAt: new Date().toISOString(),
+    }));
+  }
+
+  function bindTally(poll, scen) {
+    $("#poll-sel")?.addEventListener("change", (e) => { S.pollId = e.target.value; S.confirm = null; ls.set("tb.poll", S.pollId); renderTally(); });
+    $("#scen-sel")?.addEventListener("change", (e) => { S.scenarioId = e.target.value; ls.set("tb.scen", S.scenarioId); renderTally(); });
+    $("#imp")?.addEventListener("toggle", (e) => (S.importOpen = e.target.open));
+    $("#imp-file")?.addEventListener("change", async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const buf = await f.arrayBuffer();
+      let text;
+      try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
+      catch { text = new TextDecoder("shift_jis").decode(buf); }
+      if (/\.html?$/i.test(f.name) || /^\s*</.test(text)) {
+        const t = tableTextFromHtml(text);
+        if (!t) { $("#imp-msg").textContent = "このファイルの中に伝助の出欠表が見つかりませんでした。"; return; }
+        const title = new DOMParser().parseFromString(text, "text/html").title.replace(/\s*[-|｜].*伝助.*$/, "").trim();
+        text = t;
+        if (!$("#imp-title").value && title) $("#imp-title").value = title;
+      }
+      $("#imp-text").value = text;
+      if (!$("#imp-title").value) $("#imp-title").value = f.name.replace(/\.[^.]+$/, "");
+    });
+    $("#imp-text")?.addEventListener("paste", (e) => {
+      const html = e.clipboardData?.getData("text/html");
+      if (!html || !/<table/i.test(html)) return;
+      const t = tableTextFromHtml(html);
+      if (!t) return;
+      e.preventDefault();
+      $("#imp-text").value = t;
+      $("#imp-msg").textContent = "伝助の表を読み取りました（コメントも含みます）。名前を付けて「取り込む」を押してください。";
+      $("#imp-msg").style.color = "var(--ok)";
+    });
+    const doImport = async (src) => {
+      const msg = $("#imp-msg") || $("#quick-msg");
+      try {
+        let raw = typeof src === "string" ? src : $("#imp-text").value;
+        let bmTitle = "";
+        let bmComments = "";
+        if (/^\s*#takubiyori/.test(raw)) {
+          const ci = raw.indexOf("\n#comments\n");
+          if (ci >= 0) { bmComments = raw.slice(ci + 11); raw = raw.slice(0, ci); }
+          const ls2 = raw.replace(/^\s*#takubiyori[^\n]*\n/, "").split("\n"); bmTitle = (ls2.shift() || "").replace(/\s*[-|｜]\s*伝助[^-|｜]*$/, "").trim(); raw = ls2.join("\n"); }
+        else if (/<table/i.test(raw)) raw = tableTextFromHtml(raw) || raw;
+        const parsed = parseDensuke(raw);
+        if (bmTitle) parsed.title = bmTitle;
+        const cm = parseCommentsBlock([bmComments, typeof src === "string" ? "" : $("#imp-comments").value].filter(Boolean).join("\n\n"), parsed.players);
+        Object.entries(cm).forEach(([k, v]) => (parsed.players[+k].comment = [parsed.players[+k].comment, v].filter(Boolean).join(" ")));
+        const title = (typeof src === "string" ? "" : $("#imp-title").value.trim()) || parsed.title || `調整表 ${fmtDay(new Date().toISOString())}`;
+        const doc = { title, slots: parsed.slots, players: parsed.players, notes: parsed.notes, createdAt: new Date().toISOString() };
+        // 同じ名前の調整表があれば、新しい回答で上書きする（ページ上で書いた備考は、伝助側にコメントが無ければ残す）
+        const same = S.polls.find((p) => p.title === title);
+        let id;
+        if (same) {
+          doc.players.forEach((pl) => { const old = same.players.find((o) => o.name === pl.name); if (old?.comment && !pl.comment) pl.comment = old.comment; });
+          await setDoc("polls", same.id, doc); id = same.id;
+        } else id = await addDoc("polls", doc);
+        S.pollId = id; S.importOpen = false; S.confirm = null;
+        toast(`${same ? "更新しました" : "取り込みました"}（${parsed.slots.length}日分・${parsed.players.length}人分）`);
+        renderTally();
+      } catch (e) { msg.textContent = e.message || "取り込みに失敗しました。"; msg.style.color = "var(--ng)"; }
+    };
+    $("#imp-go")?.addEventListener("click", () => doImport());
+    $("#clip-go")?.addEventListener("click", async () => {
+      try {
+        const v = await navigator.clipboard.readText();
+        if (!v.trim()) { $("#quick-msg").textContent = "クリップボードが空です。伝助のページで「卓日和にコピー」を押してから読み込んでください。"; return; }
+        if (!/\t/.test(v)) { $("#quick-msg").textContent = "クリップボードの中身が伝助の表ではありませんでした。伝助のページで「卓日和にコピー」を押してください。"; return; }
+        doImport(v);
+      } catch { $("#quick-msg").textContent = "クリップボードを読めませんでした。下の欄に長押しで貼り付けてください。"; }
+    });
+    $("#imp-quick")?.addEventListener("input", (e) => {
+      const v = e.target.value;
+      if (/^\s*#takubiyori\n[\s\S]*\t/.test(v) || (/\t/.test(v) && /\d{1,2}\/\d{1,2}/.test(v))) { doImport(v); }
+      else if (v.trim()) { $("#quick-msg").textContent = "伝助の表として読めませんでした。伝助のページで「卓日和にコピー」を押してから貼り付けてください。"; }
+    });
+    // ブックマークレットでコピーした内容は、貼り付けただけで取り込む
+    $("#imp-text")?.addEventListener("input", () => { if (/^\s*#takubiyori\n[\s\S]*\t/.test($("#imp-text").value)) doImport(); });
+    $("#bm-copy")?.addEventListener("click", () => copyText(BOOKMARKLET, $("#bm-host")));
+    document.querySelectorAll("[data-cand]").forEach((b) => b.addEventListener("click", () => {
+      S.confirm = { kind: "single", si: +b.dataset.cand, block: b.dataset.block, tentative: true }; renderTally(); $("#cf")?.scrollIntoView({ block: "nearest" });
+    }));
+    document.querySelectorAll("[data-confirm]").forEach((b) => b.addEventListener("click", () => {
+      S.confirm = { kind: "single", si: +b.dataset.confirm, block: b.dataset.block }; renderTally(); $("#cf")?.scrollIntoView({ block: "nearest" });
+    }));
+    $("#cf-cancel")?.addEventListener("click", () => { S.confirm = null; renderTally(); });
+    $("#cf")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const start = new Date($("#cf-start").value), end = new Date($("#cf-end").value);
+      if (!(end > start)) { toast("終了は開始より後にしてください"); return; }
+      const s = {
+        title: $("#cf-title").value.trim() || poll.title, scenario: $("#cf-scen").value.trim(),
+        start: start.toISOString(), end: end.toISOString(), note: $("#cf-note").value.trim(),
+        members: [...document.querySelectorAll('input[name="cf-mem"]:checked')].map((i) => i.value),
+        pollId: poll.id, createdAt: new Date().toISOString(),
+      };
+      const tentative = !!S.confirm?.tentative;
+      if (tentative) { s.tentative = true; s.pending = poll.players.filter((p) => isPending(p, S.confirm.si) && s.members.includes(p.name)).map((p) => p.name); }
+      try { await addDoc("sessions", s); S.confirm = null; toast(tentative ? "候補日に追加しました" : "確定日に追加しました"); renderAll(); }
+      catch (err) { toast(writeErr(err)); }
+    });
+    $("#memo-bulk-go")?.addEventListener("click", async () => {
+      const cm = parseCommentsBlock($("#memo-bulk").value, poll.players);
+      const n = Object.keys(cm).length;
+      if (!n) { $("#memo-bulk-msg").textContent = "名前が見つかりませんでした。「かき：22:00から」のように名前を先頭に書いてください。"; return; }
+      const players = poll.players.map((p, k) => (cm[k] != null ? { ...p, comment: cm[k] } : p));
+      const { id, ...rest } = poll;
+      try { await setDoc("polls", poll.id, { ...rest, players }); toast(`${n}人分のコメントを保存しました`); renderTally(); }
+      catch (err) { toast(writeErr(err)); }
+    });
+    document.querySelectorAll("[data-memo]").forEach((inp) => inp.addEventListener("change", async () => {
+      const players = poll.players.map((p, k) => (k === +inp.dataset.memo ? { ...p, comment: inp.value.trim() } : p));
+      const { id, ...rest } = poll;
+      try { await setDoc("polls", poll.id, { ...rest, players }); toast("備考を保存しました"); renderTally(); }
+      catch (err) { toast(writeErr(err)); }
+    }));
+    if (scen) {
+      const { sure, cand } = plansBoth(poll, scen.segments || []);
+      document.querySelectorAll("[data-plan]").forEach((card) => {
+        const key = card.dataset.plan, tentative = key[0] === "c";
+        const plan = (tentative ? cand : sure)[+key.slice(1)]; if (!plan) return;
+        const host = $("[data-host]", card);
+        $("[data-plan-copy]", card)?.addEventListener("click", () => copyText(discordText(planSessions(poll, scen, plan, tentative), scen.name), host));
+        $("[data-plan-ok]", card)?.addEventListener("click", async () => {
+          try { for (const s of planSessions(poll, scen, plan, tentative)) await addDoc("sessions", s); toast(`${plan.length}件を${tentative ? "候補日" : "確定日"}に追加しました`); renderAll(); }
+          catch (err) { toast(writeErr(err)); }
+        });
+      });
+    }
+    $("#poll-del")?.addEventListener("click", () => {
+      const host = $("#poll-del-host");
+      host.innerHTML = `<span class="small">本当に削除しますか？</span> <button class="danger" id="poll-del-yes">削除する</button> <button id="poll-del-no">やめる</button>`;
+      $("#poll-del-no").onclick = () => renderTally();
+      $("#poll-del-yes").onclick = async () => { try { await delDoc("polls", poll.id); S.pollId = null; renderTally(); } catch (e) { toast(writeErr(e)); } };
+    });
+  }
+
+  // ---------- 確定日 ----------
+  function sessionCard(s, { withDelete } = {}) {
+    return `<article class="card${s.tentative ? " tentative" : ""}" data-sid="${esc(s.id)}">
+      ${s.tentative ? `<div class="pend"><b>候補日</b>${s.pending?.length ? `　未定: ${esc(s.pending.join("、"))}` : ""}</div>` : ""}
+      <div class="sess-date"><span class="sess-day">${fmtDay(s.start)}</span><span class="sess-time">${fmtTime(s.start)}–${fmtEnd(s.start, s.end)}</span></div>
+      <div class="sess-title">${esc(s.title)}</div>
+      ${s.scenario && s.scenario !== s.title && !s.title.startsWith(s.scenario) ? `<div class="small muted">シナリオ: ${esc(s.scenario)}</div>` : ""}
+      ${s.members?.length ? `<div class="chips">${s.members.map((m) => `<span class="chip">${esc(m)}</span>`).join("")}</div>` : ""}
+      ${s.note ? `<div class="small">${esc(s.note)}</div>` : ""}
+      <div class="actions">
+        <a class="btn" href="${esc(gcalUrl(s))}" target="_blank" rel="noopener">Googleカレンダーに追加</a>
+        <button data-ics>.icsで保存</button>
+        <button data-discord>Discord用にコピー</button>
+        ${s.tentative && S.canWrite ? `<button class="primary" data-fix>確定にする</button>` : ""}
+        ${withDelete && S.canWrite ? `<button class="danger" data-del>取り消す</button>` : ""}
+      </div>
+      <div data-host></div>
+    </article>`;
+  }
+  function bindSessionCards(root) {
+    root.querySelectorAll("[data-sid]").forEach((card) => {
+      const s = S.sessions.find((x) => x.id === card.dataset.sid); if (!s) return;
+      const host = $("[data-host]", card);
+      $("[data-ics]", card)?.addEventListener("click", () => saveIcs([s], s.title, host));
+      $("[data-discord]", card)?.addEventListener("click", () => copyText(discordText([s]), host));
+      $("[data-fix]", card)?.addEventListener("click", async () => {
+        const { id, tentative, pending, ...rest } = s;
+        try { await setDoc("sessions", s.id, rest); toast("確定にしました"); renderAll(); } catch (e) { toast(writeErr(e)); }
+      });
+      $("[data-del]", card)?.addEventListener("click", () => {
+        host.innerHTML = `<div class="row"><span class="small">この確定日を取り消しますか？</span><button class="danger" data-yes>取り消す</button><button data-no>やめる</button></div>`;
+        $("[data-no]", host).onclick = () => (host.innerHTML = "");
+        $("[data-yes]", host).onclick = async () => { try { await delDoc("sessions", s.id); toast("取り消しました"); renderAll(); } catch (e) { toast(writeErr(e)); } };
+      });
+    });
+  }
+  function renderNext() {
+    const now = Date.now();
+    const up = S.sessions.filter((s) => new Date(s.end) >= now).slice(0, 3);
+    const el = $("#next-list");
+    el.innerHTML = up.length ? up.map((s) => sessionCard(s)).join("") : `<div class="notice">確定したセッションはまだありません。集計タブで「昼で確定」「夜で確定」か、シナリオの「この案で確定」を押すと、ここに並びます。</div>`;
+    bindSessionCards(el);
+  }
+  // 確定日と候補日をまとめた Discord 用の文章
+  function summaryText(list, heading) {
+    const ts = (iso, f) => `<t:${Math.floor(new Date(iso) / 1000)}:${f}>`;
+    const line = (s) => `・${ts(s.start, "F")} 〜 ${ts(s.end, "t")}　${s.title}${s.members?.length ? `（${s.members.join("、")}）` : ""}`;
+    const sure = list.filter((s) => !s.tentative), tent = list.filter((s) => s.tentative);
+    const out = [`**【日程まとめ】${heading}**`];
+    if (sure.length) out.push("", "**■ 確定**", ...sure.map(line));
+    if (tent.length) out.push("", "**■ 候補**（未定の人の参加が決まれば確定）", ...tent.map((s) => line(s) + (s.pending?.length ? `　未定: ${s.pending.join("、")}` : "")));
+    return out.join("\n");
+  }
+  function renderSessions() {
+    const now = Date.now();
+    const pollTitle = (id) => S.polls.find((p) => p.id === id)?.title || "";
+    const groups = [...new Set(S.sessions.filter((s) => new Date(s.end) >= now).map((s) => s.pollId || ""))];
+    if (S.sessFilter && !groups.includes(S.sessFilter)) S.sessFilter = "";
+    const inGroup = (s) => !S.sessFilter || (s.pollId || "") === S.sessFilter;
+    const up = S.sessions.filter((s) => new Date(s.end) >= now && inGroup(s));
+    const past = S.sessions.filter((s) => new Date(s.end) < now).reverse();
+    const bulk = up.filter((s) => S.sessWithCand !== false || !s.tentative);
+    const el = $("#panel-sessions");
+    el.innerHTML = `<h2>これからのセッション（確定 ${up.filter((s) => !s.tentative).length}・候補 ${up.filter((s) => s.tentative).length}）</h2>
+      ${up.length ? `<div class="bulk">
+        <div class="row">
+          ${groups.length > 1 ? `<label class="field" style="flex:1;min-width:180px">対象<select id="sess-filter"><option value="">すべて</option>${groups.map((g) => `<option value="${esc(g)}"${g === S.sessFilter ? " selected" : ""}>${esc(pollTitle(g) || "（調整表なし）")}</option>`).join("")}</select></label>` : ""}
+          <label class="tog"><input type="checkbox" id="sess-cand"${S.sessWithCand !== false ? " checked" : ""}> 候補日も含める</label>
+        </div>
+        <div class="row"><button class="primary" id="bulk-discord">まとめてDiscord用にコピー（${bulk.length}件）</button><button id="ics-all">まとめてカレンダーに追加（.ics）</button></div>
+        <details class="small"><summary>Googleカレンダーに1件ずつ追加する</summary><div class="gcal-list">${bulk.map((s) => `<a class="btn" href="${esc(gcalUrl(s))}" target="_blank" rel="noopener">${s.tentative ? "【候補】" : ""}${fmtDay(s.start)} ${fmtTime(s.start)} ${esc(s.part || s.title)}</a>`).join("")}</div></details>
+        <div class="small muted">.ics を開くと、iPhoneのカレンダーにはまとめて追加できます。Googleカレンダーへまとめて入れる場合は、パソコン版の「設定 → インポート」で読み込むか、上の1件ずつのボタンを使ってください。候補日は「【候補】」付きで入ります。</div>
+        <div id="ics-all-host"></div>
+      </div>` : ""}
+      <div class="next-list">${up.map((s) => sessionCard(s, { withDelete: true })).join("") || `<div class="notice">予定はまだありません。</div>`}</div>
+      ${past.length ? `<details class="past"><summary>終わったセッション（${past.length}）</summary><div class="next-list" style="margin-top:10px">${past.map((s) => sessionCard(s, { withDelete: true })).join("")}</div></details>` : ""}`;
+    const heading = (S.sessFilter && pollTitle(S.sessFilter)) || (groups.length === 1 && pollTitle(groups[0])) || "これからのセッション";
+    $("#sess-filter")?.addEventListener("change", (e) => { S.sessFilter = e.target.value; renderSessions(); });
+    $("#sess-cand")?.addEventListener("change", (e) => { S.sessWithCand = e.target.checked; renderSessions(); });
+    $("#bulk-discord")?.addEventListener("click", () => copyText(summaryText(bulk, heading), $("#ics-all-host")));
+    $("#ics-all")?.addEventListener("click", () => saveIcs(bulk, `卓日和_${heading}`, $("#ics-all-host")));
+    bindSessionCards(el);
+  }
+
+  // ---------- シナリオ ----------
+  function specOf(segs) {
+    return segs.map((g) => `${g.roles.join("")}（${g.minutes % 60 ? (g.minutes >= 60 ? `${g.minutes / 60}時間` : `${g.minutes}分`) : `${g.minutes / 60}時間`}）`).join("");
+  }
+  function hoCountFromPolls() {
+    let n = 0;
+    S.polls.forEach((p) => p.players.forEach((pl) => { const m = roleOf(pl.name).match(/^HO(\d+)$/); if (m) n = Math.max(n, +m[1]); }));
+    return n;
+  }
+  function newEditor(s) {
+    const segs = s ? (s.segments || []).map((g) => ({ roles: [...g.roles], minutes: g.minutes })) : [];
+    const used = Math.max(0, ...segs.flatMap((g) => g.roles.map((r) => +(r.match(/^HO(\d+)$/) || [])[1] || 0)));
+    return { id: s?.id || null, name: s?.name || "", note: s?.note || "", segments: segs, hoMax: Math.max(used, hoCountFromPolls(), 2), tplHo: Math.max(hoCountFromPolls(), 2), tplIntro: 60, tplMain: 240 };
+  }
+
+  function renderScenarios() {
+    const el = $("#panel-scenarios");
+    if (!S.ed) S.ed = newEditor();
+    el.innerHTML = `<div class="small muted">伝助の名前の頭に「KP」「HO1」などを付けておくと、役職で判定します。パートを順番に並べると、その順で空いている時間帯に割り当てます。</div>
+      <div class="scen-list">${S.scenarios.map((s) => `<article class="card" data-scid="${esc(s.id)}">
+        <h3>${esc(s.name)}</h3>
+        <div class="flow">${(s.segments || []).map((g) => `<span class="chip">${esc(g.roles.join("+"))} <span class="mono">${esc(fmtDur(g.minutes))}</span></span>`).join('<span class="arrow">→</span>')}</div>
+        ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
+        <div class="actions"><button data-use>この構成で組む</button>${S.canWrite ? `<button data-edit>編集</button><button data-dup>複製</button><button class="danger" data-del>削除</button>` : ""}</div>
+        <div data-host></div></article>`).join("") || `<div class="notice">登録されたシナリオはまだありません。下のフォームで作ると、ここに並びます。</div>`}</div>
+      ${S.canWrite ? `<form class="confirm-form" id="sf"></form>` : ""}`;
+    if (S.canWrite) renderEditor();
+    el.querySelectorAll("[data-scid]").forEach((card) => {
+      const s = S.scenarios.find((x) => x.id === card.dataset.scid);
+      $("[data-use]", card).onclick = () => { S.scenarioId = s.id; ls.set("tb.scen", s.id); showTab("tally"); };
+      const ed = $("[data-edit]", card);
+      if (ed) ed.onclick = () => { S.ed = newEditor(s); renderEditor(); $("#sf").scrollIntoView({ block: "nearest" }); };
+      const dup = $("[data-dup]", card);
+      if (dup) dup.onclick = () => { S.ed = { ...newEditor(s), id: null, name: `${s.name}（コピー）` }; renderEditor(); $("#sf").scrollIntoView({ block: "nearest" }); };
+      const del = $("[data-del]", card);
+      if (del) del.onclick = () => {
+        const host = $("[data-host]", card);
+        host.innerHTML = `<div class="row"><span class="small">削除しますか？</span><button class="danger" data-yes>削除する</button><button data-no>やめる</button></div>`;
+        $("[data-no]", host).onclick = () => (host.innerHTML = "");
+        $("[data-yes]", host).onclick = async () => { try { await delDoc("scenarios", s.id); if (S.scenarioId === s.id) S.scenarioId = ""; renderAll(); } catch (e) { toast(writeErr(e)); } };
+      };
+    });
+  }
+
+  function renderEditor() {
+    const f = $("#sf"); if (!f) return;
+    const E = S.ed;
+    const roleOpts = ["KP", ...Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`), "全員"];
+    const total = E.segments.reduce((a, g) => a + g.minutes, 0);
+    f.innerHTML = `<h3>${E.id ? `「${esc(E.name)}」を編集` : "シナリオを作る"}</h3>
+      <label class="field">シナリオ名<input type="text" id="sf-name" required placeholder="例: 狂気山脈" value="${esc(E.name)}"></label>
+      <div class="tpl">
+        <div class="small"><b>テンプレートから作る</b></div>
+        <div class="row small">
+          <span class="tplitem"><span>HO</span><span class="stepper"><button type="button" data-tpl="tplHo" data-d="-1" aria-label="HOを減らす">−</button><span class="mono">${E.tplHo}人</span><button type="button" data-tpl="tplHo" data-d="1" aria-label="HOを増やす">＋</button></span></span>
+          <span class="tplitem"><span>個別導入</span><span class="stepper"><button type="button" data-tpl="tplIntro" data-d="-30" aria-label="導入を短く">−</button><span class="mono">${fmtDur(E.tplIntro)}</span><button type="button" data-tpl="tplIntro" data-d="30" aria-label="導入を長く">＋</button></span></span>
+          <span class="tplitem"><span>本編</span><span class="stepper"><button type="button" data-tpl="tplMain" data-d="-30" aria-label="本編を短く">−</button><span class="mono">${fmtDur(E.tplMain)}</span><button type="button" data-tpl="tplMain" data-d="30" aria-label="本編を長く">＋</button></span></span>
+        </div>
+        <div class="row"><button type="button" data-make="intro">個別導入＋本編にする</button><button type="button" data-make="main">本編だけにする</button></div>
+      </div>
+      <div class="field">パート（上から順番に割り当てます）</div>
+      <ol class="segs">${E.segments.map((g, i) => `<li class="seg" data-i="${i}">
+        <div class="seg-head"><span class="seg-no mono">${i + 1}</span>
+          <div class="pick">${roleOpts.map((r) => `<label><input type="checkbox" data-role="${r}"${g.roles.includes(r) ? " checked" : ""}>${r}</label>`).join("")}</div></div>
+        <div class="row seg-foot">
+          <span class="stepper"><button type="button" data-dur="-30" aria-label="30分短く">−</button><span class="mono">${fmtDur(g.minutes)}</span><button type="button" data-dur="30" aria-label="30分長く">＋</button></span>
+          ${[60, 120, 180, 240].map((m) => `<button type="button" class="quick${g.minutes === m ? " on" : ""}" data-set="${m}">${m / 60}h</button>`).join("")}
+          <span class="seg-move"><button type="button" data-mv="-1" aria-label="上へ"${i === 0 ? " disabled" : ""}>↑</button><button type="button" data-mv="1" aria-label="下へ"${i === E.segments.length - 1 ? " disabled" : ""}>↓</button><button type="button" class="danger" data-rm aria-label="このパートを消す">×</button></span>
+        </div></li>`).join("")}</ol>
+      ${E.segments.length ? "" : `<div class="notice">まだパートがありません。テンプレートを使うか、下のボタンで追加してください。</div>`}
+      <div class="row"><button type="button" data-add="KP">＋ KPと個別パート</button><button type="button" data-add="全員">＋ 全員パート</button><button type="button" data-ho>HOの数を増やす（今 ${E.hoMax}）</button></div>
+      ${E.segments.length ? `<div class="small muted">合計 <span class="mono">${fmtDur(total)}</span>　${E.segments.map((g) => `${g.roles.join("+")} ${fmtDur(g.minutes)}`).join(" → ")}</div>` : ""}
+      <details class="small"><summary>文字で入力する</summary>
+        <div class="row" style="margin-top:6px"><input type="text" id="sf-spec" value="${esc(specOf(E.segments))}" placeholder="KPHO1（1時間）KPHO2（1時間）全員（4時間）" style="flex:1;min-width:220px"><button type="button" id="sf-spec-go">反映</button></div>
+      </details>
+      <label class="field">メモ<input type="text" id="sf-note" value="${esc(E.note)}"></label>
+      <div class="row"><button class="primary" type="submit">保存</button>${E.id || E.segments.length || E.name ? `<button type="button" id="sf-reset">${E.id ? "編集をやめる" : "クリア"}</button>` : ""}</div>`;
+
+    const keep = () => { E.name = $("#sf-name").value; E.note = $("#sf-note").value; };
+    const redraw = () => { keep(); renderEditor(); };
+    f.querySelectorAll("[data-tpl]").forEach((b) => (b.onclick = () => {
+      const k = b.dataset.tpl, d = +b.dataset.d;
+      E[k] = k === "tplHo" ? Math.min(12, Math.max(1, E[k] + d)) : Math.min(720, Math.max(30, E[k] + d));
+      redraw();
+    }));
+    f.querySelectorAll("[data-make]").forEach((b) => (b.onclick = () => {
+      E.segments = b.dataset.make === "intro"
+        ? [...Array.from({ length: E.tplHo }, (_, i) => ({ roles: ["KP", `HO${i + 1}`], minutes: E.tplIntro })), { roles: ["全員"], minutes: E.tplMain }]
+        : [{ roles: ["全員"], minutes: E.tplMain }];
+      E.hoMax = Math.max(E.hoMax, E.tplHo);
+      redraw();
+    }));
+    f.querySelectorAll(".seg").forEach((li) => {
+      const i = +li.dataset.i, g = E.segments[i];
+      li.querySelectorAll("[data-role]").forEach((c) => (c.onchange = () => {
+        const r = c.dataset.role;
+        if (r === "全員") g.roles = c.checked ? ["全員"] : [];
+        else g.roles = [...new Set([...g.roles.filter((x) => x !== "全員" && x !== r), ...(c.checked ? [r] : [])])].sort((a, b) => roleOpts.indexOf(a) - roleOpts.indexOf(b));
+        redraw();
+      }));
+      li.querySelectorAll("[data-dur]").forEach((b) => (b.onclick = () => { g.minutes = Math.min(720, Math.max(30, g.minutes + +b.dataset.dur)); redraw(); }));
+      li.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { g.minutes = +b.dataset.set; redraw(); }));
+      li.querySelectorAll("[data-mv]").forEach((b) => (b.onclick = () => {
+        const j = i + +b.dataset.mv; if (j < 0 || j >= E.segments.length) return;
+        [E.segments[i], E.segments[j]] = [E.segments[j], E.segments[i]]; redraw();
+      }));
+      $("[data-rm]", li).onclick = () => { E.segments.splice(i, 1); redraw(); };
+    });
+    f.querySelectorAll("[data-add]").forEach((b) => (b.onclick = () => {
+      if (b.dataset.add === "全員") E.segments.push({ roles: ["全員"], minutes: 240 });
+      else {
+        const usedHo = E.segments.flatMap((g) => g.roles).filter((r) => /^HO\d+$/.test(r));
+        const next = Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`).find((r) => !usedHo.includes(r));
+        E.segments.push({ roles: next ? ["KP", next] : ["KP"], minutes: 60 });
+      }
+      redraw();
+    }));
+    $("[data-ho]", f).onclick = () => { E.hoMax = Math.min(12, E.hoMax + 1); redraw(); };
+    $("#sf-spec-go").onclick = () => {
+      const segs = parseSpec($("#sf-spec").value);
+      if (!segs.length) { toast("役職（KP、HO1、全員など）と（1時間）のような時間を続けて書いてください"); return; }
+      E.segments = segs.map((g) => ({ roles: g.roles, minutes: g.minutes }));
+      E.hoMax = Math.max(E.hoMax, ...segs.flatMap((g) => g.roles.map((r) => +(r.match(/^HO(\d+)$/) || [])[1] || 0)));
+      redraw();
+    };
+    $("#sf-name").oninput = keep; $("#sf-note").oninput = keep;
+    $("#sf-reset")?.addEventListener("click", () => { S.ed = newEditor(); renderEditor(); });
+    f.onsubmit = async (e) => {
+      e.preventDefault(); keep();
+      const segments = E.segments.filter((g) => g.roles.length).map((g) => ({ label: g.roles.join(""), roles: g.roles, minutes: g.minutes }));
+      if (!E.name.trim()) { toast("シナリオ名を入れてください"); return; }
+      if (!segments.length) { toast("役職を選んだパートを1つ以上作ってください"); return; }
+      const doc = { name: E.name.trim(), spec: specOf(segments), segments, note: E.note.trim() };
+      try { E.id ? await setDoc("scenarios", E.id, doc) : await addDoc("scenarios", doc); S.ed = newEditor(); toast("保存しました"); renderAll(); }
+      catch (err) { toast(writeErr(err)); }
+    };
+  }
+
+  // ---------- 保存先 ----------
+  function writeErr(e) { return e?.code === "not_granted" || /permission|denied/i.test(e?.message || "") ? "編集する権限がありません。ページの持ち主に編集者として招待してもらってください。" : "保存できませんでした。時間をおいてもう一度試してください。"; }
+  const STORE_KEY = "takubiyori.v1";
+  function persist() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ polls: S.polls, sessions: S.sessions, scenarios: S.scenarios })); }
+    catch { status("このスマホに保存できませんでした。プライベートブラウズを使っていないか確認してください。", true); }
+  }
+  async function addDoc(col, data) { const id = "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); upsertLocal(col, id, data); persist(); return id; }
+  async function setDoc(col, id, data) { upsertLocal(col, id, data); persist(); }
+  async function delDoc(col, id) { S[col] = S[col].filter((x) => x.id !== id); persist(); }
+  function upsertLocal(col, id, data) {
+    const arr = S[col]; const i = arr.findIndex((x) => x.id === id);
+    const v = { ...data, id }; if (i >= 0) arr[i] = v; else arr.push(v);
+    sortAll();
+  }
+  function sortAll() {
+    S.sessions.sort((a, b) => new Date(a.start) - new Date(b.start));
+    S.polls.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+    S.scenarios.sort((a, b) => (a.name || "").localeCompare(b.name || "", "ja"));
+  }
+
+  // ---------- 画面 ----------
+  function showTab(t) {
+    S.tab = t; ls.set("tb.tab", t);
+    document.querySelectorAll("[data-tab]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+    ["tally", "sessions", "scenarios"].forEach((k) => ($("#panel-" + k).hidden = k !== t));
+    renderAll();
+  }
+  function renderAll() {
+    renderNext();
+    if (S.tab === "tally") renderTally();
+    if (S.tab === "sessions") renderSessions();
+    if (S.tab === "scenarios") renderScenarios();
+  }
+  document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  $("#bk-save").addEventListener("click", () => {
+    const d = new Date();
+    const url = URL.createObjectURL(new Blob([JSON.stringify({ app: "takubiyori", version: 1, savedAt: d.toISOString(), polls: S.polls, sessions: S.sessions, scenarios: S.scenarios }, null, 1)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = `takubiyori_backup_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.json`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  });
+  $("#bk-load").addEventListener("change", async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (d.app !== "takubiyori") throw new Error();
+      for (const col of ["polls", "sessions", "scenarios"]) S[col] = Array.isArray(d[col]) ? d[col] : [];
+      sortAll(); persist(); renderAll();
+      $("#bk-msg").textContent = `復元しました（調整表 ${S.polls.length}・セッション ${S.sessions.length}・シナリオ ${S.scenarios.length}）`;
+    } catch { $("#bk-msg").textContent = "卓日和のバックアップファイルではありませんでした。"; }
+    e.target.value = "";
+  });
+
+  S.pollId = ls.get("tb.poll"); S.scenarioId = ls.get("tb.scen") || "";
+  showTab(["tally", "sessions", "scenarios"].includes(ls.get("tb.tab")) ? ls.get("tb.tab") : "tally");
+
+  // ---------- スマホ内に保存 ----------
+  (() => {
+    try {
+      const d = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+      if (d) for (const col of ["polls", "sessions", "scenarios"]) S[col] = Array.isArray(d[col]) ? d[col] : [];
+    } catch { status("保存データを読み込めませんでした。", true); }
+    S.scenarios.forEach((s) => (s.segments = Array.isArray(s.segments) ? s.segments : parseSpec(s.spec)));
+    sortAll(); renderAll();
+  })();
+
+  window.__takubiyori = { parseCommentsBlock, tableTextFromHtml, parseTimeRules, windowOf, parseDensuke, parseSpec, plansFor, roleOf, displayName, dayRows, discordText };
+})();
+</script>
+
+</body>
+</html>
