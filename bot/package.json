@@ -1,0 +1,27 @@
+{
+  "name": "takubiyori-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "卓日和から送ったセッション告知を読み取り、/次回 で予定を答え、開始前にリマインドするDiscord bot",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "invite": "tsx src/invite.ts"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^18.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
