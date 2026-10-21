@@ -206,6 +206,14 @@ button.part { cursor: pointer; }
 details.tpl { display: block; }
 details.tpl > summary { cursor: pointer; }
 .board-help { margin-top: 4px; }
+.grp-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 8px; align-items: center; margin-top: 4px; }
+.grp-ho { font-weight: 700; }
+.grp-grid .segmented { justify-self: start; }
+.grp-grid .segmented button { min-width: 2.6em; }
+.segmented button.on.grp-B { background: var(--maybe); border-color: var(--maybe); } .segmented button.on.grp-C { background: var(--ng); } .segmented button.on.grp-D { background: var(--muted); }
+.grp-sum { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 6px; }
+.grp-chip { border: 1px solid var(--line); border-left-width: 4px; border-radius: 6px; padding: 2px 8px; background: var(--surface); }
+.grp-chip.lane-A { border-color: var(--line); border-left-color: var(--accent); } .grp-chip.lane-B { border-color: var(--line); border-left-color: var(--maybe); } .grp-chip.lane-C { border-color: var(--line); border-left-color: var(--ng); } .grp-chip.lane-D { border-color: var(--line); border-left-color: var(--muted); }
 .stage { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
 .stage-no { font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 2.6em; }
 .lane { display: inline-flex; flex-wrap: wrap; gap: 3px; align-items: center; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; }
@@ -1145,23 +1153,26 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     const used = Math.max(0, ...segs.flatMap((g) => g.roles.map(hoNum)));
     const ho = Math.max(hoCountFromPolls(), 2);
     const lanes = Math.max(1, ...segs.filter((g) => g.line !== "全体").map((g) => LINES.indexOf(g.line) + 1));
-    return { id: s?.id || null, name: s?.name || "", note: s?.note || "", segments: segs, sel: null, lanes, hoMax: Math.max(used, ho), tplHo: ho, tplIntro: 60, tplBuddy: 60, tplMain: 240 };
+    return { id: s?.id || null, name: s?.name || "", note: s?.note || "", segments: segs, sel: null, lanes, hoMax: Math.max(used, ho), tplHo: ho, tplGroups: defaultGroups(ho), tplIntro: 60, tplBuddy: 60, tplMain: 240 };
+  }
+  // バディ組の初期値: 2人ずつ（HO1・HO2→A、HO3・HO4→B…）
+  const defaultGroups = (n, prev = []) => Array.from({ length: n }, (_, i) => prev[i] || LINES[Math.min(Math.floor(i / 2), 3)]);
+  // 組ごとのHO番号（使われている組だけ、A→D の順）
+  function groupsOf(E) {
+    return LINES.slice(0, 4).map((l) => ({ l, hos: E.tplGroups.slice(0, E.tplHo).map((g, i) => (g === l ? i + 1 : 0)).filter(Boolean) })).filter((x) => x.hos.length);
   }
   function makeTemplate(E, kind) {
     const intro = (n, line, step) => ({ roles: ["KP", `HO${n}`], minutes: E.tplIntro, line, step });
     if (kind === "main") return [{ roles: ["全員"], minutes: E.tplMain, line: "全体", step: 1 }];
     if (kind === "intro") return [...Array.from({ length: E.tplHo }, (_, i) => intro(i + 1, "A", 1)), { roles: ["全員"], minutes: E.tplMain, line: "全体", step: 2 }];
-    // バディ導入: ペアごとに1ライン（HO1・HO2→HO1+HO2 がラインA、HO3・HO4→HO3+HO4 がラインB…）を並行、最後に全員で本編
+    // バディ導入: 組ごとに1ライン（個別導入→組の全員で合流）を並行、最後に全員で本編。1人だけの組は合流なし
     const segs = [];
-    for (let a = 0, li = 0; a < E.tplHo; a += 2, li++) {
-      const line = LINES[Math.min(li, 3)];
-      segs.push(intro(a + 1, line, 1));
-      if (a + 1 < E.tplHo) {
-        segs.push(intro(a + 2, line, 1));
-        segs.push({ roles: ["KP", `HO${a + 1}`, `HO${a + 2}`], minutes: E.tplBuddy, line, step: 2 });
-      }
-    }
-    segs.push({ roles: ["全員"], minutes: E.tplMain, line: "全体", step: 3 });
+    groupsOf(E).forEach((grp, li) => {
+      const line = LINES[li];
+      grp.hos.forEach((n) => segs.push(intro(n, line, 1)));
+      if (grp.hos.length >= 2) segs.push({ roles: ["KP", ...grp.hos.map((n) => `HO${n}`)], minutes: E.tplBuddy, line, step: 2 });
+    });
+    segs.push({ roles: ["全員"], minutes: E.tplMain, line: "全体", step: segs.some((x) => x.step === 2) ? 3 : 2 });
     return segs;
   }
 
@@ -1210,6 +1221,10 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
           ${stepper("tplBuddy", 30, "合流", fmtDur(E.tplBuddy))}
           ${stepper("tplMain", 30, "本編", fmtDur(E.tplMain))}
         </div>
+        <div class="field small">バディの組み分け<span class="muted">（同じ記号のHOが合流します。1人の組は合流なし）</span>
+          <div class="grp-grid">${Array.from({ length: E.tplHo }, (_, i) => `<span class="grp-ho mono">HO${i + 1}</span><span class="segmented">${LINES.slice(0, 4).map((l) => `<button type="button" data-grp="${i}:${l}" class="grp-${l}${E.tplGroups[i] === l ? " on" : ""}">${l}</button>`).join("")}</span>`).join("")}</div>
+          <div class="grp-sum">${groupsOf(E).map((g) => `<span class="grp-chip lane-${g.l}"><b>${g.l}</b> ${g.hos.map((n) => `HO${n}`).join("・")}${g.hos.length >= 2 ? `<span class="muted">（${g.hos.length}人で合流）</span>` : `<span class="muted">（合流なし）</span>`}</span>`).join("")}</div>
+        </div>
         <div class="row"><button type="button" data-make="buddy">個別→バディ合流→本編</button><button type="button" data-make="intro">個別→本編</button><button type="button" data-make="main">本編だけ</button></div>
       </details>
 
@@ -1249,8 +1264,10 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     f.querySelectorAll("[data-tpl]").forEach((b) => (b.onclick = () => {
       const k = b.dataset.tpl, d = +b.dataset.d;
       E[k] = k === "tplHo" ? Math.min(8, Math.max(1, E[k] + d)) : Math.min(720, Math.max(30, E[k] + d));
+      if (k === "tplHo") E.tplGroups = defaultGroups(E.tplHo, E.tplGroups);
       redraw();
     }));
+    f.querySelectorAll("[data-grp]").forEach((b) => (b.onclick = () => { const [i, l] = b.dataset.grp.split(":"); E.tplGroups[+i] = l; redraw(); }));
     f.querySelectorAll("[data-make]").forEach((b) => (b.onclick = () => {
       E.segments = makeTemplate(E, b.dataset.make); E.sel = null;
       E.hoMax = Math.max(E.hoMax, E.tplHo);
