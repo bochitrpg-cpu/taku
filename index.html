@@ -180,6 +180,32 @@ button.big { font-size: 15px; padding: 10px 14px; justify-content: center; }
 .flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .arrow { color: var(--muted); font-size: 12px; }
 .flow-stages { display: grid; gap: 4px; }
+.board { display: grid; gap: 4px; margin: 6px 0; }
+.b-row { display: grid; grid-template-columns: 2.6em repeat(var(--lanes), minmax(0, 1fr)); gap: 4px; align-items: stretch; }
+.b-head .b-lane { font-size: 11px; font-weight: 700; text-align: center; padding: 2px 0; border-radius: 6px 6px 0 0; border-bottom: 3px solid var(--line); }
+.b-head .lane-A { border-color: var(--accent); } .b-head .lane-B { border-color: var(--maybe); } .b-head .lane-C { border-color: var(--ng); } .b-head .lane-D { border-color: var(--muted); }
+.b-step { font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: var(--muted); align-self: center; text-align: center; }
+.b-cell { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 4px; display: flex; flex-direction: column; gap: 4px; min-width: 0; background: var(--bg); }
+.b-cell[class*="lane-"] { border-color: var(--line); }
+.b-cell.lane-A { border-left-color: var(--accent); } .b-cell.lane-B { border-left-color: var(--maybe); } .b-cell.lane-C { border-left-color: var(--ng); } .b-cell.lane-D { border-left-color: var(--muted); }
+.b-cell.lane-all { border-style: dashed; border-left-width: 1px; background: var(--accent-soft); flex-direction: row; flex-wrap: wrap; align-items: center; }
+.b-wide { grid-column: 2 / -1; }
+.b-tag { font-size: 11px; font-weight: 700; color: var(--muted); margin-right: 4px; }
+.b-arrow { text-align: center; color: var(--muted); font-size: 12px; line-height: 1; padding-left: 2.6em; }
+.part { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-size: 13px; text-align: left; min-width: 0; color: inherit; font: inherit; font-size: 13px; }
+button.part { cursor: pointer; }
+.part.sel { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--accent-soft); }
+.p-kind { font-size: 10px; color: var(--muted); width: 100%; }
+.b-cell.lane-all .p-kind { width: auto; }
+.p-name { font-weight: 700; overflow-wrap: anywhere; }
+.p-dur { font-size: 11px; color: var(--muted); }
+.p-kp { font-size: 10px; border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; color: var(--muted); }
+.b-add { border: 1px dashed var(--line); background: none; color: var(--muted); padding: 2px; font-size: 13px; border-radius: 6px; }
+.board-tools { gap: 6px; }
+.part-edit { display: grid; gap: 8px; border: 2px solid var(--accent); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+details.tpl { display: block; }
+details.tpl > summary { cursor: pointer; }
+.board-help { margin-top: 4px; }
 .stage { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
 .stage-no { font-family: var(--f-mono); font-size: 11px; font-weight: 600; color: var(--muted); min-width: 2.6em; }
 .lane { display: inline-flex; flex-wrap: wrap; gap: 3px; align-items: center; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; }
@@ -795,7 +821,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   }
   function planSectionHtml(poll, scen) {
     const segs = scen.segments || [];
-    let html = `<div class="summary"><h2>「${esc(scen.name)}」の組み方</h2><div class="flow-stages">${flowHtml(segs)}</div>`;
+    let html = `<div class="summary"><h2>「${esc(scen.name)}」の組み方</h2>${boardHtml(segs)}`;
     const roles = new Set(poll.players.map((p) => roleOf(p.name)).filter(Boolean));
     const missing = [...new Set(segs.flatMap((g) => g.roles))].filter((r) => r !== "全員" && !roles.has(r));
     if (missing.length) html += `<div class="notice warn">伝助の表に ${missing.map(esc).join("、")} が付いた名前が見つかりません。名前の頭に「KP」「HO1」のように付けると判定できます。</div>`;
@@ -1076,11 +1102,37 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     segs.forEach((_, i) => (step[i] = 1 + Math.max(0, ...deps[i].map((j) => step[j] || 1))));
     return segs.map((g, i) => ({ ...g, line: "全体", step: step[i] }));
   }
-  function flowHtml(segs) {
-    const n = normSegs(segs);
+  // パートの短い表示名（KPは省いてバッジにする）
+  function partName(g) {
+    if (g.roles.includes("全員")) return "全員";
+    const rest = g.roles.filter((r) => r !== "KP");
+    return rest.length ? rest.join("・") : "KP";
+  }
+  const partKind = (g) => (g.roles.includes("全員") ? "本編" : g.roles.filter((r) => /^HO/.test(r)).length >= 2 ? "合流" : "個別");
+  // 段（縦）×ライン（横）のボード。editable のときはパートを押して選び、マスの＋で追加できる
+  function boardHtml(segs, opts = {}) {
+    const n = normSegs(segs).map((g, i) => ({ ...g, i }));
+    const usedLanes = LINES.slice(0, 4).filter((l) => n.some((g) => g.line === l));
+    const laneCount = Math.max(opts.lanes || 0, usedLanes.length ? LINES.indexOf(usedLanes[usedLanes.length - 1]) + 1 : 0, 1);
+    const lanes = LINES.slice(0, laneCount);
     const steps = [...new Set(n.map((g) => g.step))].sort((a, b) => a - b);
-    return steps.map((st) => `<div class="stage"><span class="stage-no">段${st}</span>${LINES.filter((l) => n.some((g) => g.step === st && g.line === l)).map((l) =>
-      `<span class="lane lane-${l === "全体" ? "all" : l}"><b>${esc(lineLabel(l))}</b>${n.filter((g) => g.step === st && g.line === l).map((g) => `<span class="chip">${esc(g.roles.join("+"))} <span class="mono">${esc(fmtDur(g.minutes))}</span></span>`).join("")}</span>`).join("")}</div>`).join("");
+    if (opts.editable && !steps.length) steps.push(1);
+    const chip = (g) => {
+      const inner = `<span class="p-kind">${partKind(g)}</span><span class="p-name">${esc(partName(g))}</span><span class="p-dur mono">${esc(fmtDur(g.minutes))}</span>${g.roles.includes("KP") && partName(g) !== "KP" ? `<span class="p-kp">KP</span>` : ""}`;
+      return opts.editable ? `<button type="button" class="part${opts.sel === g.i ? " sel" : ""}" data-part="${g.i}">${inner}</button>` : `<span class="part">${inner}</span>`;
+    };
+    let html = `<div class="board" style="--lanes:${lanes.length}">
+      <div class="b-row b-head"><span class="b-step"></span>${lanes.map((l) => `<span class="b-lane lane-${l}">ライン${l}</span>`).join("")}</div>`;
+    steps.forEach((st, si) => {
+      if (si) html += `<div class="b-arrow" aria-hidden="true">↓</div>`;
+      const laneParts = n.filter((g) => g.step === st && g.line !== "全体");
+      const allParts = n.filter((g) => g.step === st && g.line === "全体");
+      if (laneParts.length || !allParts.length) {
+        html += `<div class="b-row"><span class="b-step">段${st}</span>${lanes.map((l) => `<div class="b-cell lane-${l}">${n.filter((g) => g.step === st && g.line === l).map(chip).join("")}${opts.editable ? `<button type="button" class="b-add" data-addcell="${l}:${st}" aria-label="ライン${l}の段${st}にパートを追加">＋</button>` : ""}</div>`).join("")}</div>`;
+      }
+      if (allParts.length) html += `<div class="b-row"><span class="b-step">${laneParts.length ? "" : `段${st}`}</span><div class="b-cell lane-all b-wide"><span class="b-tag">全員そろって</span>${allParts.map(chip).join("")}</div></div>`;
+    });
+    return html + `</div>`;
   }
   function hoCountFromPolls() {
     let n = 0;
@@ -1092,13 +1144,14 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     const segs = normSegs(s ? s.segments || [] : []).map((g) => ({ roles: [...g.roles], minutes: g.minutes, line: g.line, step: g.step }));
     const used = Math.max(0, ...segs.flatMap((g) => g.roles.map(hoNum)));
     const ho = Math.max(hoCountFromPolls(), 2);
-    return { id: s?.id || null, name: s?.name || "", note: s?.note || "", segments: segs, hoMax: Math.max(used, ho), tplHo: ho, tplIntro: 60, tplBuddy: 60, tplMain: 240 };
+    const lanes = Math.max(1, ...segs.filter((g) => g.line !== "全体").map((g) => LINES.indexOf(g.line) + 1));
+    return { id: s?.id || null, name: s?.name || "", note: s?.note || "", segments: segs, sel: null, lanes, hoMax: Math.max(used, ho), tplHo: ho, tplIntro: 60, tplBuddy: 60, tplMain: 240 };
   }
   function makeTemplate(E, kind) {
     const intro = (n, line, step) => ({ roles: ["KP", `HO${n}`], minutes: E.tplIntro, line, step });
     if (kind === "main") return [{ roles: ["全員"], minutes: E.tplMain, line: "全体", step: 1 }];
     if (kind === "intro") return [...Array.from({ length: E.tplHo }, (_, i) => intro(i + 1, "A", 1)), { roles: ["全員"], minutes: E.tplMain, line: "全体", step: 2 }];
-    // バディ導入: ペアごとに1ライン（HO1・HO2→HO1+HO2 がラインA、HO3・HO4→HO3+HO4 がラインB…）を並行、最後に全体で本編
+    // バディ導入: ペアごとに1ライン（HO1・HO2→HO1+HO2 がラインA、HO3・HO4→HO3+HO4 がラインB…）を並行、最後に全員で本編
     const segs = [];
     for (let a = 0, li = 0; a < E.tplHo; a += 2, li++) {
       const line = LINES[Math.min(li, 3)];
@@ -1115,22 +1168,21 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   function renderScenarios() {
     const el = $("#panel-scenarios");
     if (!S.ed) S.ed = newEditor();
-    el.innerHTML = `<div class="small muted">伝助の名前の頭に「KP」「HO1」などを付けておくと、役職で判定します。<b>ライン</b>は並行して進められる流れ、<b>段</b>はライン内の順番です（同じ段のパートは順不同）。「全体」ラインのパートは、その前の段がすべてのラインで終わってから行います。</div>
-      <div class="scen-list">${S.scenarios.map((s) => `<article class="card" data-scid="${esc(s.id)}">
+    el.innerHTML = `${S.scenarios.length ? `<div class="scen-list">${S.scenarios.map((s) => `<article class="card" data-scid="${esc(s.id)}">
         <h3>${esc(s.name)}</h3>
-        <div class="flow-stages">${flowHtml(s.segments || [])}</div>
+        ${boardHtml(s.segments || [])}
         ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
-        <div class="actions"><button data-use>この構成で組む</button>${S.canWrite ? `<button data-edit>編集</button><button data-dup>複製</button><button class="danger" data-del>削除</button>` : ""}</div>
-        <div data-host></div></article>`).join("") || `<div class="notice">登録されたシナリオはまだありません。下のフォームで作ると、ここに並びます。</div>`}</div>
+        <div class="actions"><button class="primary" data-use>この構成で日程を組む</button>${S.canWrite ? `<button data-edit>編集</button><button data-dup>複製</button><button class="danger" data-del>削除</button>` : ""}</div>
+        <div data-host></div></article>`).join("")}</div>` : `<div class="notice">登録されたシナリオはまだありません。下で作ると、ここに並びます。</div>`}
       ${S.canWrite ? `<form class="confirm-form" id="sf"></form>` : ""}`;
     if (S.canWrite) renderEditor();
     el.querySelectorAll("[data-scid]").forEach((card) => {
       const s = S.scenarios.find((x) => x.id === card.dataset.scid);
       $("[data-use]", card).onclick = () => { S.scenarioId = s.id; ls.set("tb.scen", s.id); showTab("tally"); };
       const ed = $("[data-edit]", card);
-      if (ed) ed.onclick = () => { S.ed = newEditor(s); renderEditor(); $("#sf").scrollIntoView({ block: "nearest" }); };
+      if (ed) ed.onclick = () => { S.ed = newEditor(s); renderEditor(); $("#sf").scrollIntoView({ block: "start" }); };
       const dup = $("[data-dup]", card);
-      if (dup) dup.onclick = () => { S.ed = { ...newEditor(s), id: null, name: `${s.name}（コピー）` }; renderEditor(); $("#sf").scrollIntoView({ block: "nearest" }); };
+      if (dup) dup.onclick = () => { S.ed = { ...newEditor(s), id: null, name: `${s.name}（コピー）` }; renderEditor(); $("#sf").scrollIntoView({ block: "start" }); };
       const del = $("[data-del]", card);
       if (del) del.onclick = () => {
         const host = $("[data-host]", card);
@@ -1144,39 +1196,43 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   function renderEditor() {
     const f = $("#sf"); if (!f) return;
     const E = S.ed;
-    // 段 → ラインの順に並べて表示
-    E.segments.sort((a, b) => a.step - b.step || LINES.indexOf(a.line) - LINES.indexOf(b.line));
     const roleOpts = ["KP", ...Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`), "全員"];
     const stepper = (key, d, label, val) => `<span class="tplitem"><span>${label}</span><span class="stepper"><button type="button" data-tpl="${key}" data-d="-${d}" aria-label="${label}を減らす">−</button><span class="mono">${val}</span><button type="button" data-tpl="${key}" data-d="${d}" aria-label="${label}を増やす">＋</button></span></span>`;
-    const steps = [...new Set(E.segments.map((g) => g.step))];
+    const g = E.sel != null ? E.segments[E.sel] : null;
+    const lastStep = Math.max(0, ...E.segments.map((x) => x.step));
     f.innerHTML = `<h3>${E.id ? `「${esc(E.name)}」を編集` : "シナリオを作る"}</h3>
       <label class="field">シナリオ名<input type="text" id="sf-name" required placeholder="例: 狂気山脈" value="${esc(E.name)}"></label>
-      <div class="tpl">
-        <div class="small"><b>テンプレートから作る</b></div>
-        <div class="row small">
+
+      <details class="tpl"${E.segments.length ? "" : " open"}><summary class="small"><b>テンプレートから作る</b></summary>
+        <div class="row small" style="margin-top:6px">
           ${stepper("tplHo", 1, "HO", `${E.tplHo}人`)}
-          ${stepper("tplIntro", 30, "個別導入", fmtDur(E.tplIntro))}
-          ${stepper("tplBuddy", 30, "バディ導入", fmtDur(E.tplBuddy))}
+          ${stepper("tplIntro", 30, "個別", fmtDur(E.tplIntro))}
+          ${stepper("tplBuddy", 30, "合流", fmtDur(E.tplBuddy))}
           ${stepper("tplMain", 30, "本編", fmtDur(E.tplMain))}
         </div>
-        <div class="row"><button type="button" data-make="buddy">個別→バディ→本編</button><button type="button" data-make="intro">個別→本編</button><button type="button" data-make="main">本編だけ</button></div>
-        <div class="small muted">「個別→バディ→本編」は、ラインA（HO1・HO2の個別導入→HO1+HO2のバディ導入）とラインB（HO3・HO4→HO3+HO4）を並行して進め、両方終わったら本編、という形を作ります。</div>
+        <div class="row"><button type="button" data-make="buddy">個別→バディ合流→本編</button><button type="button" data-make="intro">個別→本編</button><button type="button" data-make="main">本編だけ</button></div>
+      </details>
+
+      <div class="board-help small muted">横に並んだ<b>ライン</b>は同時進行、縦の<b>段</b>は上から順番です。同じマスのパートは順不同。パートを押すと下で編集できます。</div>
+      ${boardHtml(E.segments, { editable: true, sel: E.sel, lanes: E.lanes })}
+      <div class="row board-tools">
+        <button type="button" data-addstep>＋ 段を追加</button>
+        <button type="button" data-addall>＋ 全員パート</button>
+        ${E.lanes < 4 ? `<button type="button" data-addlane>＋ ラインを追加</button>` : ""}
+        ${E.segments.length ? `<span class="small muted">合計 <span class="mono">${fmtDur(E.segments.reduce((a, x) => a + x.minutes, 0))}</span></span>` : ""}
       </div>
-      ${E.segments.length ? `<div class="flow-stages">${flowHtml(E.segments)}</div>` : ""}
-      <ol class="segs">${E.segments.map((g, i) => `${i === 0 || E.segments[i - 1].step !== g.step ? `<li class="stage-head">段${g.step}${g.step > 1 ? `<span class="small muted">　同じラインの前の段（と「全体」）が終わってから</span>` : ""}</li>` : ""}<li class="seg lane-${g.line === "全体" ? "all" : g.line}" data-i="${i}">
-        <div class="seg-lines"><span class="small muted">ライン</span><span class="segmented">${LINES.map((l) => `<button type="button" data-line="${l}" class="${g.line === l ? "on" : ""}">${l}</button>`).join("")}</span>
-          <span class="small muted">段</span><span class="stepper"><button type="button" data-step="-1" aria-label="前の段へ"${g.step <= 1 ? " disabled" : ""}>−</button><span class="mono">${g.step}</span><button type="button" data-step="1" aria-label="次の段へ">＋</button></span>
-          <button type="button" class="danger" data-rm aria-label="このパートを消す">×</button></div>
-        <div class="pick">${roleOpts.map((r) => `<label><input type="checkbox" data-role="${r}"${g.roles.includes(r) ? " checked" : ""}>${r}</label>`).join("")}</div>
-        <div class="row seg-foot">
-          <span class="stepper"><button type="button" data-dur="-30" aria-label="30分短く">−</button><span class="mono">${fmtDur(g.minutes)}</span><button type="button" data-dur="30" aria-label="30分長く">＋</button></span>
-          ${[60, 120, 180, 240].map((m) => `<button type="button" class="quick${g.minutes === m ? " on" : ""}" data-set="${m}">${m / 60}h</button>`).join("")}
-        </div>
-      </li>`).join("")}</ol>
-      ${E.segments.length ? "" : `<div class="notice">まだパートがありません。テンプレートを使うか、下のボタンで追加してください。</div>`}
-      <div class="row"><button type="button" data-add="KP">＋ 個別パート</button><button type="button" data-add="全員">＋ 全員パート（最後の段の次）</button><button type="button" data-ho>HOの数を増やす（今 ${E.hoMax}）</button></div>
-      ${E.segments.length ? `<div class="small muted">合計 <span class="mono">${fmtDur(E.segments.reduce((a, g) => a + g.minutes, 0))}</span>（${steps.length}段）</div>` : ""}
-      <details class="small"><summary>文字で入力する（「全体」ラインで上から順番どおりになります）</summary>
+
+      ${g ? `<div class="part-edit">
+        <div class="row"><b style="flex:1">パートを編集</b><button type="button" class="danger" data-rm>このパートを消す</button><button type="button" data-close>閉じる</button></div>
+        <div class="field">参加する役職<div class="pick">${roleOpts.map((r) => `<label><input type="checkbox" data-role="${r}"${g.roles.includes(r) ? " checked" : ""}>${r}</label>`).join("")}</div></div>
+        <div class="field">時間<div class="row"><span class="stepper"><button type="button" data-dur="-30" aria-label="30分短く">−</button><span class="mono">${fmtDur(g.minutes)}</span><button type="button" data-dur="30" aria-label="30分長く">＋</button></span>${[60, 120, 180, 240].map((m) => `<button type="button" class="quick${g.minutes === m ? " on" : ""}" data-set="${m}">${m / 60}h</button>`).join("")}</div></div>
+        <div class="field">置き場所<div class="row">
+          <span class="segmented">${[...LINES.slice(0, Math.max(E.lanes, 1)), "全体"].map((l) => `<button type="button" data-line="${l}" class="${g.line === l ? "on" : ""}">${l === "全体" ? "全員そろって" : `ライン${l}`}</button>`).join("")}</span>
+          <span class="stepper"><button type="button" data-step="-1" aria-label="上の段へ"${g.step <= 1 ? " disabled" : ""}>↑</button><span class="mono">段${g.step}</span><button type="button" data-step="1" aria-label="下の段へ">↓</button></span>
+        </div></div>
+      </div>` : ""}
+
+      <details class="small"><summary>文字で入力する（上から順番どおりになります）</summary>
         <div class="row" style="margin-top:6px"><input type="text" id="sf-spec" value="${esc(specOf(E.segments))}" placeholder="KPHO1（1時間）KPHO2（1時間）全員（4時間）" style="flex:1;min-width:220px"><button type="button" id="sf-spec-go">反映</button></div>
       </details>
       <label class="field">メモ<input type="text" id="sf-note" value="${esc(E.note)}"></label>
@@ -1184,42 +1240,48 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
 
     const keep = () => { E.name = $("#sf-name").value; E.note = $("#sf-note").value; };
     const redraw = () => { keep(); renderEditor(); };
+    const nextHoPart = (line, step) => {
+      const usedHo = E.segments.flatMap((x) => x.roles).filter((r) => /^HO\d+$/.test(r));
+      const next = Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`).find((r) => !usedHo.includes(r));
+      E.segments.push({ roles: next ? ["KP", next] : ["KP"], minutes: 60, line, step });
+      E.sel = E.segments.length - 1;
+    };
     f.querySelectorAll("[data-tpl]").forEach((b) => (b.onclick = () => {
       const k = b.dataset.tpl, d = +b.dataset.d;
       E[k] = k === "tplHo" ? Math.min(8, Math.max(1, E[k] + d)) : Math.min(720, Math.max(30, E[k] + d));
       redraw();
     }));
-    f.querySelectorAll("[data-make]").forEach((b) => (b.onclick = () => { E.segments = makeTemplate(E, b.dataset.make); E.hoMax = Math.max(E.hoMax, E.tplHo); redraw(); }));
-    f.querySelectorAll(".seg").forEach((li) => {
-      const g = E.segments[+li.dataset.i];
-      li.querySelectorAll("[data-line]").forEach((b) => (b.onclick = () => { g.line = b.dataset.line; redraw(); }));
-      li.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => { g.step = Math.max(1, g.step + +b.dataset.step); redraw(); }));
-      li.querySelectorAll("[data-role]").forEach((c) => (c.onchange = () => {
+    f.querySelectorAll("[data-make]").forEach((b) => (b.onclick = () => {
+      E.segments = makeTemplate(E, b.dataset.make); E.sel = null;
+      E.hoMax = Math.max(E.hoMax, E.tplHo);
+      E.lanes = Math.max(1, ...E.segments.filter((x) => x.line !== "全体").map((x) => LINES.indexOf(x.line) + 1));
+      redraw();
+    }));
+    f.querySelectorAll("[data-part]").forEach((b) => (b.onclick = () => { E.sel = E.sel === +b.dataset.part ? null : +b.dataset.part; redraw(); $(".part-edit", f)?.scrollIntoView({ block: "nearest" }); }));
+    f.querySelectorAll("[data-addcell]").forEach((b) => (b.onclick = () => { const [l, st] = b.dataset.addcell.split(":"); nextHoPart(l, +st); redraw(); }));
+    $("[data-addstep]", f).onclick = () => { nextHoPart("A", lastStep + 1); redraw(); };
+    $("[data-addall]", f).onclick = () => { E.segments.push({ roles: ["全員"], minutes: 240, line: "全体", step: lastStep + 1 }); E.sel = E.segments.length - 1; redraw(); };
+    $("[data-addlane]", f)?.addEventListener("click", () => { E.lanes = Math.min(4, E.lanes + 1); redraw(); });
+    if (g) {
+      f.querySelectorAll("[data-role]").forEach((c) => (c.onchange = () => {
         const r = c.dataset.role;
         if (r === "全員") g.roles = c.checked ? ["全員"] : [];
         else g.roles = [...new Set([...g.roles.filter((x) => x !== "全員" && x !== r), ...(c.checked ? [r] : [])])].sort((a, b) => roleOpts.indexOf(a) - roleOpts.indexOf(b));
+        if (r === "全員" && c.checked) g.line = "全体";
         redraw();
       }));
-      li.querySelectorAll("[data-dur]").forEach((b) => (b.onclick = () => { g.minutes = Math.min(720, Math.max(30, g.minutes + +b.dataset.dur)); redraw(); }));
-      li.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { g.minutes = +b.dataset.set; redraw(); }));
-      $("[data-rm]", li).onclick = () => { E.segments.splice(+li.dataset.i, 1); redraw(); };
-    });
-    f.querySelectorAll("[data-add]").forEach((b) => (b.onclick = () => {
-      const last = Math.max(0, ...E.segments.map((g) => g.step));
-      if (b.dataset.add === "全員") E.segments.push({ roles: ["全員"], minutes: 240, line: "全体", step: last + 1 });
-      else {
-        const usedHo = E.segments.flatMap((g) => g.roles).filter((r) => /^HO\d+$/.test(r));
-        const next = Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`).find((r) => !usedHo.includes(r));
-        E.segments.push({ roles: next ? ["KP", next] : ["KP"], minutes: 60, line: "A", step: Math.max(1, last) });
-      }
-      redraw();
-    }));
-    $("[data-ho]", f).onclick = () => { E.hoMax = Math.min(12, E.hoMax + 1); redraw(); };
+      f.querySelectorAll("[data-dur]").forEach((b) => (b.onclick = () => { g.minutes = Math.min(720, Math.max(30, g.minutes + +b.dataset.dur)); redraw(); }));
+      f.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { g.minutes = +b.dataset.set; redraw(); }));
+      f.querySelectorAll("[data-line]").forEach((b) => (b.onclick = () => { g.line = b.dataset.line; redraw(); }));
+      f.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => { g.step = Math.max(1, g.step + +b.dataset.step); redraw(); }));
+      $("[data-rm]", f).onclick = () => { E.segments.splice(E.sel, 1); E.sel = null; redraw(); };
+      $("[data-close]", f).onclick = () => { E.sel = null; redraw(); };
+    }
     $("#sf-spec-go").onclick = () => {
       const segs = parseSpec($("#sf-spec").value);
       if (!segs.length) { toast("役職（KP、HO1、全員など）と（1時間）のような時間を続けて書いてください"); return; }
-      E.segments = segs.map((g, i) => ({ roles: g.roles, minutes: g.minutes, line: "全体", step: i + 1 }));
-      E.hoMax = Math.max(E.hoMax, ...segs.flatMap((g) => g.roles.map(hoNum)));
+      E.segments = segs.map((x, i) => ({ roles: x.roles, minutes: x.minutes, line: "全体", step: i + 1 })); E.sel = null;
+      E.hoMax = Math.max(E.hoMax, ...segs.flatMap((x) => x.roles.map(hoNum)));
       redraw();
     };
     $("#sf-name").oninput = keep; $("#sf-note").oninput = keep;
@@ -1227,8 +1289,9 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     f.onsubmit = async (e) => {
       e.preventDefault(); keep();
       // 空いた段番号を詰める
-      const stepsUsed = [...new Set(E.segments.filter((g) => g.roles.length).map((g) => g.step))].sort((a, b) => a - b);
-      const segments = E.segments.filter((g) => g.roles.length).map((g) => ({ label: g.roles.join(""), roles: g.roles, minutes: g.minutes, line: g.line, step: stepsUsed.indexOf(g.step) + 1 }));
+      const live = E.segments.filter((x) => x.roles.length);
+      const stepsUsed = [...new Set(live.map((x) => x.step))].sort((a, b) => a - b);
+      const segments = live.map((x) => ({ label: x.roles.join(""), roles: x.roles, minutes: x.minutes, line: x.line, step: stepsUsed.indexOf(x.step) + 1 }));
       if (!E.name.trim()) { toast("シナリオ名を入れてください"); return; }
       if (!segments.length) { toast("役職を選んだパートを1つ以上作ってください"); return; }
       const doc = { name: E.name.trim(), spec: specOf(segments), segments, note: E.note.trim() };
@@ -1236,6 +1299,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       catch (err) { toast(writeErr(err)); }
     };
   }
+
 
   // ---------- 保存先 ----------
   function writeErr(e) { return e?.code === "not_granted" || /permission|denied/i.test(e?.message || "") ? "編集する権限がありません。ページの持ち主に編集者として招待してもらってください。" : "保存できませんでした。時間をおいてもう一度試してください。"; }
