@@ -206,6 +206,9 @@ button.part { cursor: pointer; }
 details.tpl { display: block; }
 details.tpl > summary { cursor: pointer; }
 .board-help { margin-top: 4px; }
+input.dur-in, .stepper input.dur-in { width: 4.8em; min-width: 0; flex: none; box-shadow: none; text-align: center; border: none; background: none; font-size: 13px; padding: 2px 0; }
+.addindiv { display: inline-flex; align-items: center; gap: 4px; }
+.addindiv .dur-in { border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .b-x { border: 1px solid var(--line); background: var(--surface); color: var(--muted); padding: 2px 7px; margin-left: 4px; font-size: 13px; line-height: 1.1; border-radius: 6px; min-width: 26px; min-height: 24px; }
 .b-head .b-lane { display: flex; align-items: center; justify-content: center; }
 .b-grip { border: 1px dashed var(--line); background: none; color: var(--muted); font-size: 11px; padding: 3px 4px; border-radius: 6px; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: grab; }
@@ -474,19 +477,32 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
   function parseSpec(spec) {
     const src = (spec || "").normalize("NFKC");
     const segs = [];
-    const re = /([^()]+?)\(\s*(\d+(?:\.\d+)?)\s*(時間|h|H|分|m|min)?\s*\)/g;
+    const re = /([^()]+?)\(\s*([^()]*?)\s*\)/g;
     let m;
     while ((m = re.exec(src))) {
       const raw = m[1].replace(/^[\s→>、,・+＋]+|[\s→>、,・+＋]+$/g, "");
       const roles = [...raw.matchAll(/全員|KP|GM|HO\s*\d+|PL\s*\d+/gi)].map((x) => (x[0] === "全員" ? "全員" : x[0].replace(/\s+/g, "").toUpperCase()));
       if (!roles.length) continue;
-      const v = +m[2];
-      const minutes = /^(分|m|min)$/.test(m[3] || "") ? v : Math.round(v * 60);
+      const minutes = parseDur(m[2]);
+      if (!minutes) continue;
       segs.push({ label: raw, roles: roles.includes("全員") ? ["全員"] : [...new Set(roles)], minutes });
     }
     return segs;
   }
   const segText = (g) => `${g.roles.join("+")} ${fmtDur(g.minutes)}`;
+  // 「1h10m」「1時間10分」「1:10」「70分」「1.5」などを分に。単位なしの数は12以下なら時間、それより大きければ分
+  function parseDur(t) {
+    t = (t || "").normalize("NFKC").replace(/\s/g, "").toLowerCase();
+    let m;
+    if ((m = t.match(/^(\d+):(\d{1,2})$/))) return +m[1] * 60 + +m[2];
+    if (/^\d+\.\d+$/.test(t)) return Math.round(+t * 60);
+    m = t.match(/^(?:(\d+(?:\.\d+)?)(?:h|hr|時間))?(?:(\d+)(m|min|分)?)?$/);
+    if (!m || (!m[1] && !m[2])) return null;
+    if (!m[1]) return m[3] ? +m[2] : +m[2] <= 12 ? +m[2] * 60 : +m[2];
+    return Math.round(+m[1] * 60) + (+m[2] || 0);
+  }
+  const fmtShort = (min) => { const h = Math.floor(min / 60), m = min % 60; return `${h ? `${h}h` : ""}${m || !h ? `${m}m` : ""}`; };
+  const clampDur = (v) => Math.min(720, Math.max(10, v));
   function fmtDur(min) { const h = Math.floor(min / 60), m = min % 60; return h && m ? `${h}時間${m}分` : h ? `${h}時間` : `${m}分`; }
 
   // ---------- 日時 ----------
@@ -1113,7 +1129,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
 
   // ---------- シナリオ ----------
   function specOf(segs) {
-    return segs.map((g) => `${g.roles.join("")}（${g.minutes % 60 ? (g.minutes >= 60 ? `${g.minutes / 60}時間` : `${g.minutes}分`) : `${g.minutes / 60}時間`}）`).join("");
+    return segs.map((g) => `${g.roles.join("")}（${fmtDur(g.minutes)}）`).join("");
   }
   // ライン（並行して進む流れ）と段（ライン内の順番。同じ段は順不同）
   const LINES = ["A", "B", "C", "D", "全体"];
@@ -1227,7 +1243,8 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     const f = $("#sf"); if (!f) return;
     const E = S.ed;
     const roleOpts = ["KP", ...Array.from({ length: E.hoMax }, (_, i) => `HO${i + 1}`), "全員"];
-    const stepper = (key, d, label, val) => `<span class="tplitem"><span>${label}</span><span class="stepper"><button type="button" data-tpl="${key}" data-d="-${d}" aria-label="${label}を減らす">−</button><span class="mono">${val}</span><button type="button" data-tpl="${key}" data-d="${d}" aria-label="${label}を増やす">＋</button></span></span>`;
+    const durBox = (attr, min) => `<input type="text" class="dur-in mono" ${attr} value="${fmtShort(min)}" inputmode="text" autocomplete="off" aria-label="時間（例 1h10m）">`;
+    const stepper = (key, d, label, val) => `<span class="tplitem"><span>${label}</span><span class="stepper"><button type="button" data-tpl="${key}" data-d="-${d}" aria-label="${label}を減らす">−</button>${key === "tplHo" ? `<span class="mono">${val}</span>` : durBox(`data-tplin="${key}"`, E[key])}<button type="button" data-tpl="${key}" data-d="${d}" aria-label="${label}を増やす">＋</button></span></span>`;
     const g = E.sel != null ? E.segments[E.sel] : null;
     const lastStep = Math.max(0, ...E.segments.map((x) => x.step));
     f.innerHTML = `<h3>${E.id ? `「${esc(E.name)}」を編集` : "シナリオを作る"}</h3>
@@ -1236,9 +1253,9 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       <details class="tpl"${E.segments.length ? "" : " open"}><summary class="small"><b>テンプレートから作る</b></summary>
         <div class="row small" style="margin-top:6px">
           ${stepper("tplHo", 1, "HO", `${E.tplHo}人`)}
-          ${stepper("tplIntro", 30, "個別", fmtDur(E.tplIntro))}
-          ${stepper("tplBuddy", 30, "合流", fmtDur(E.tplBuddy))}
-          ${stepper("tplMain", 30, "本編", fmtDur(E.tplMain))}
+          ${stepper("tplIntro", 10, "個別", fmtDur(E.tplIntro))}
+          ${stepper("tplBuddy", 10, "合流", fmtDur(E.tplBuddy))}
+          ${stepper("tplMain", 10, "本編", fmtDur(E.tplMain))}
         </div>
         <div class="field small">バディの組み分け<span class="muted">（同じ記号のHOが合流します。1人の組は合流なし）</span>
           <div class="grp-grid">${Array.from({ length: E.tplHo }, (_, i) => `<span class="grp-ho mono">HO${i + 1}</span><span class="segmented">${LINES.slice(0, 4).map((l) => `<button type="button" data-grp="${i}:${l}" class="grp-${l}${E.tplGroups[i] === l ? " on" : ""}">${l}</button>`).join("")}</span>`).join("")}</div>
@@ -1253,6 +1270,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
         ${E.undo ? `<button type="button" data-undo>↶ 元に戻す</button>` : ""}
         <button type="button" data-addstep>＋ 段を追加</button>
         <button type="button" data-addall>＋ 全員パート</button>
+        <span class="addindiv"><button type="button" data-addindiv>＋ 全員の個別</button><span class="small muted">各</span>${durBox('data-tplin="tplIntro"', E.tplIntro)}</span>
         ${E.lanes < 4 ? `<button type="button" data-addlane>＋ ラインを追加</button>` : ""}
         ${E.segments.length ? `<span class="small muted">合計 <span class="mono">${fmtDur(E.segments.reduce((a, x) => a + x.minutes, 0))}</span></span>` : ""}
       </div>
@@ -1260,7 +1278,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       ${g ? `<div class="part-edit">
         <div class="row"><b style="flex:1">パートを編集</b><button type="button" class="danger" data-rm>このパートを消す</button><button type="button" data-close>閉じる</button></div>
         <div class="field">参加する役職<div class="pick">${roleOpts.map((r) => `<label><input type="checkbox" data-role="${r}"${g.roles.includes(r) ? " checked" : ""}>${r}</label>`).join("")}</div></div>
-        <div class="field">時間<div class="row"><span class="stepper"><button type="button" data-dur="-30" aria-label="30分短く">−</button><span class="mono">${fmtDur(g.minutes)}</span><button type="button" data-dur="30" aria-label="30分長く">＋</button></span>${[60, 120, 180, 240].map((m) => `<button type="button" class="quick${g.minutes === m ? " on" : ""}" data-set="${m}">${m / 60}h</button>`).join("")}</div></div>
+        <div class="field">時間<div class="row"><span class="stepper"><button type="button" data-dur="-10" aria-label="10分短く">−</button>${durBox("data-durin", g.minutes)}<button type="button" data-dur="10" aria-label="10分長く">＋</button></span>${[60, 120, 180, 240].map((m) => `<button type="button" class="quick${g.minutes === m ? " on" : ""}" data-set="${m}">${m / 60}h</button>`).join("")}</div></div>
         <div class="field">置き場所<div class="row">
           <span class="segmented">${[...LINES.slice(0, Math.max(E.lanes, 1)), "全体"].map((l) => `<button type="button" data-line="${l}" class="${g.line === l ? "on" : ""}">${l === "全体" ? "全員そろって" : `ライン${l}`}</button>`).join("")}</span>
           <span class="stepper"><button type="button" data-step="-1" aria-label="上の段へ"${g.step <= 1 ? " disabled" : ""}>↑</button><span class="mono">段${g.step}</span><button type="button" data-step="1" aria-label="下の段へ">↓</button></span>
@@ -1281,9 +1299,14 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       E.segments.push({ roles: next ? ["KP", next] : ["KP"], minutes: 60, line, step });
       E.sel = E.segments.length - 1;
     };
+    f.querySelectorAll("[data-tplin]").forEach((inp) => (inp.onchange = () => {
+      const v = parseDur(inp.value);
+      if (!v) { toast("「1h10m」「1時間10分」「70分」のように入れてください"); inp.value = fmtShort(E[inp.dataset.tplin]); return; }
+      E[inp.dataset.tplin] = clampDur(v); redraw();
+    }));
     f.querySelectorAll("[data-tpl]").forEach((b) => (b.onclick = () => {
       const k = b.dataset.tpl, d = +b.dataset.d;
-      E[k] = k === "tplHo" ? Math.min(8, Math.max(1, E[k] + d)) : Math.min(720, Math.max(30, E[k] + d));
+      E[k] = k === "tplHo" ? Math.min(8, Math.max(1, E[k] + d)) : clampDur(E[k] + d);
       if (k === "tplHo") E.tplGroups = defaultGroups(E.tplHo, E.tplGroups);
       redraw();
     }));
@@ -1377,6 +1400,12 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     f.querySelectorAll("[data-part]").forEach((b) => (b.onclick = () => { if (justDragged) return; E.sel = E.sel === +b.dataset.part ? null : +b.dataset.part; redraw(); $(".part-edit", f)?.scrollIntoView({ block: "nearest" }); }));
     f.querySelectorAll("[data-addcell]").forEach((b) => (b.onclick = () => { const [l, st] = b.dataset.addcell.split(":"); nextHoPart(l, +st); redraw(); }));
     $("[data-addstep]", f).onclick = () => { nextHoPart("A", lastStep + 1); redraw(); };
+    // HO全員ぶんの「KP＋HOn」を同じ時間で、新しい段に1マスにまとめて足す（同じマスなので順不同）
+    $("[data-addindiv]", f).onclick = () => {
+      const n = Math.max(0, ...E.segments.flatMap((x) => x.roles.map(hoNum))) || E.tplHo;
+      for (let i = 1; i <= n; i++) E.segments.push({ roles: ["KP", `HO${i}`], minutes: E.tplIntro, line: "A", step: lastStep + 1 });
+      E.hoMax = Math.max(E.hoMax, n); E.sel = null; redraw();
+    };
     $("[data-addall]", f).onclick = () => { E.segments.push({ roles: ["全員"], minutes: 240, line: "全体", step: lastStep + 1 }); E.sel = E.segments.length - 1; redraw(); };
     $("[data-addlane]", f)?.addEventListener("click", () => { E.lanes = Math.min(4, E.lanes + 1); redraw(); });
     if (g) {
@@ -1387,7 +1416,8 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
         if (r === "全員" && c.checked) g.line = "全体";
         redraw();
       }));
-      f.querySelectorAll("[data-dur]").forEach((b) => (b.onclick = () => { g.minutes = Math.min(720, Math.max(30, g.minutes + +b.dataset.dur)); redraw(); }));
+      f.querySelectorAll("[data-dur]").forEach((b) => (b.onclick = () => { g.minutes = clampDur(g.minutes + +b.dataset.dur); redraw(); }));
+      $("[data-durin]", f).onchange = (e) => { const v = parseDur(e.target.value); if (!v) { toast("「1h10m」「1時間10分」「70分」のように入れてください"); e.target.value = fmtShort(g.minutes); return; } g.minutes = clampDur(v); redraw(); };
       f.querySelectorAll("[data-set]").forEach((b) => (b.onclick = () => { g.minutes = +b.dataset.set; redraw(); }));
       f.querySelectorAll("[data-line]").forEach((b) => (b.onclick = () => { g.line = b.dataset.line; redraw(); }));
       f.querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => { g.step = Math.max(1, g.step + +b.dataset.step); redraw(); }));
