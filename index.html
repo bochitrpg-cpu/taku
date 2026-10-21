@@ -1168,7 +1168,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       const inner = `<span class="p-kind">${partKind(g)}${kp ? `<span class="p-kp">KP</span>` : ""}</span><span class="p-name">${esc(partName(g))}</span><span class="p-dur mono">${esc(fmtDur(g.minutes))}</span>`;
       return ed ? `<button type="button" class="part${opts.sel === g.i ? " sel" : ""}" data-part="${g.i}">${inner}</button>` : `<span class="part">${inner}</span>`;
     };
-    // 順不同のパートは横並び。1列が5つを越える段は2段に折り返す
+    // 順不同のパートは横並び。1列が4つを越える段は2段に折り返す
     const partsGrid = (list, cols) => (list.length ? `<div class="b-parts" style="--cols:${cols}">${list.map(chip).join("")}</div>` : "");
     const colsFor = (k, wrap) => Math.max(1, wrap ? Math.ceil(k / 2) : k);
     const grip = (l, st) => (ed && n.filter((g) => g.line === l && g.step === st).length > 1 ? `<button type="button" class="b-grip" data-grip="${l}:${st}" aria-label="このマスをまとめて動かす">⠿ まとめて</button>` : "");
@@ -1187,7 +1187,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     sections.forEach((sec) => {
       if (sec.wide != null) {
         if (!sec.mixed) arrow(sec.wide);
-        html += `<div class="b-row" style="--lanes:1">${sec.mixed ? `<span class="b-step"></span>` : stepLabel(sec.wide)}<div class="b-cell lane-all" data-cell="全体:${sec.wide}">${grip("全体", sec.wide)}<span class="b-tag">全員そろって</span>${partsGrid(sec.parts, colsFor(sec.parts.length, sec.parts.length > 5))}</div></div>`;
+        html += `<div class="b-row" style="--lanes:1">${sec.mixed ? `<span class="b-step"></span>` : stepLabel(sec.wide)}<div class="b-cell lane-all" data-cell="全体:${sec.wide}">${grip("全体", sec.wide)}<span class="b-tag">全員そろって</span>${partsGrid(sec.parts, colsFor(sec.parts.length, sec.parts.length > 4))}</div></div>`;
         return;
       }
       const from = sec.steps[0], to = sec.steps[sec.steps.length - 1];
@@ -1204,7 +1204,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       sec.steps.forEach((st) => {
         arrow(st);
         const per = lanes.map((l) => n.filter((g) => g.step === st && g.line === l));
-        const wrap = per.reduce((a, x) => a + x.length, 0) > 5;
+        const wrap = per.reduce((a, x) => a + x.length, 0) > 4;
         html += `<div class="b-row" style="--lanes:${count}">${stepLabel(st)}${lanes.map((l, k) => `<div class="b-cell ${multi ? `lane-${l}` : "lane-solo"}" data-cell="${l}:${st}">${grip(l, st)}${partsGrid(per[k], colsFor(per[k].length, wrap))}${ed ? `<button type="button" class="b-add" data-addcell="${l}:${st}" aria-label="${multi ? `ライン${l}の` : ""}段${st}にパートを追加">＋</button>` : ""}</div>`).join("")}</div>`;
       });
       if (ed && count < 4) html += `<div class="b-sec-tools"><button type="button" data-addlane="${from}:${count}">＋ ${multi ? "ラインを追加" : "ラインを分ける"}</button></div>`;
