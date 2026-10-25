@@ -10,6 +10,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%236741d9'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='sans-serif'%3E卓%3C/text%3E%3C/svg%3E">
 <style>[hidden]{display:none!important} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0;font-size:14px}</style>
 <title>卓日和</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@800&family=Murecho:wght@900&display=swap">
 <script>try { const t = localStorage.getItem("takubiyori.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (_) {}</script>
 <style>
 /* Layout: 一枚の卓日誌。上に今後のセッション、下にタブで集計・確定日・シナリオ */
@@ -36,9 +39,11 @@
   --warn: #8a5a00;  --warn-bg: #f7ead0;
   --ng: #a8322e;    --ng-bg: #f6dcda;
   --k-head: #2f63c0; --k-memo: #a36d06; --k-pnl: #1f8a7e;
-  /* フォント：同梱しない。端末にあるものを上から順に使う */
+  /* フォント：見出しは Google Fonts（Oxanium 800 + Murecho 900）を読み込む。本文は同梱せず端末にあるものを上から順に使う
+     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@800&family=Murecho:wght@900&display=swap"> */
   --f-jp: "Yu Gothic Medium", "游ゴシック Medium", YuGothic, "游ゴシック体", "Yu Gothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Noto Sans JP", Meiryo, sans-serif;
-  --f-head: "Makinas-4 Square", "マキナス 4 Square", var(--f-jp);
+  --f-head: "Oxanium", "Murecho", var(--f-jp);
+  --w-head: 900;
   --f-body: "JetBrains Mono", var(--f-jp);
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, var(--f-jp);
   /* 形 */
@@ -73,9 +78,9 @@
     var(--panel);
   border: 1px solid var(--line);
 }
-/* 区切りの見出し：マキナス＋右端の小さな英字ラベル */
+/* 区切りの見出し：Oxanium＋Murecho、右端に小さな英字ラベル */
 .tk-sec { display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
-.tk-sec > :first-child { font-family: var(--f-head); font-weight: 400; letter-spacing: .02em; }
+.tk-sec > :first-child { font-family: var(--f-head); font-weight: var(--w-head); letter-spacing: .02em; }
 .tk-sec .tk-en { margin-left: auto; font-family: var(--f-mono); font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
 /* 卓日和で使っていた名前 → 共通テーマの変数 */
 :root {
@@ -92,9 +97,9 @@ body {
 }
 .wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
 header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
-h1 { font-family: var(--f-display); font-weight: 400; font-size: 30px; margin: 0; letter-spacing: .02em; }
+h1 { font-family: var(--f-display); font-weight: var(--w-head); font-size: 30px; margin: 0; letter-spacing: .02em; }
 .sub { color: var(--muted); font-size: 13px; }
-h2 { font-family: var(--f-head); font-weight: 400; font-size: 18px; margin: 0; text-wrap: balance; letter-spacing: .02em; }
+h2 { font-family: var(--f-head); font-weight: var(--w-head); font-size: 18px; margin: 0; text-wrap: balance; letter-spacing: .02em; }
 h3 { font-size: 15px; margin: 0; }
 .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
@@ -312,6 +317,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     var(--panel);
 }
 .tabs button { font-family: var(--f-head); letter-spacing: .04em; }
+.tabs button[aria-selected="true"] { font-weight: var(--w-head); }
 header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
