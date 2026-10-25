@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#1f6f5c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="卓日和">
+<meta name="apple-mobile-web-app-title" content="MeeTRPG">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f6f5c'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='sans-serif'%3E卓%3C/text%3E%3C/svg%3E">
 <style>[hidden]{display:none!important} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0;font-size:14px}</style>
-<title>卓日和</title>
+<title>MeeTRPG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -275,7 +275,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
 
 <div class="wrap">
   <header class="top">
-    <h1>卓日和</h1>
+    <h1>MeeTRPG</h1>
     <span class="sub">伝助の結果を取り込んで、セッション日を決めてカレンダーへ</span>
   </header>
 
@@ -354,7 +354,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     const rows = text.includes("\t") ? text.split(/\r?\n/).map((l) => l.split("\t")) : parseCSV(text);
     return rows.map((r) => r.map((c) => c.trim())).filter((r) => r.some((c) => c !== ""));
   }
-  const BOOKMARKLET = "javascript:(()=>{const D=/(\\d{1,2})\\s*[\\/月]\\s*(\\d{1,2})/;const tx=c=>{const n=c.cloneNode(true);n.querySelectorAll('img').forEach(i=>i.replaceWith(i.alt||i.title||''));n.querySelectorAll('br').forEach(b=>b.replaceWith(' '));return(n.textContent||'').replace(/\\s+/g,' ').trim()};let best=null,bt=null,bs=0;document.querySelectorAll('table').forEach(t=>{const r=[...t.rows].map(x=>[...x.cells].map(tx));const s=r.filter(x=>D.test(x[0]||'')).length+(r[0]||[]).filter(v=>D.test(v)).length;if(s>bs){bs=s;best=r;bt=t}});if(!best){alert('伝助の出欠表が見つかりませんでした');return}const all=document.body.innerText||'';const last=bt.rows[bt.rows.length-1];const lt=(last.innerText||'').trim().split('\\n').pop().split('\\t').pop().trim();let i=lt?all.lastIndexOf(lt):-1;const after=i>=0?all.slice(i+lt.length,i+lt.length+6000):'';const out='#takubiyori\\n'+document.title.replace(/\\s+/g,' ')+'\\n'+best.filter(r=>r.some(Boolean)).map(r=>r.map(v=>v.replace(/\\t/g,' ')).join('\\t')).join('\\n')+'\\n#comments\\n'+after;const ask=()=>prompt('自動コピーできませんでした。この文字を全部コピーしてください',out);navigator.clipboard?navigator.clipboard.writeText(out).then(()=>alert('コピーしました。卓日和の取り込み欄に貼り付けてください'),ask):ask()})()";
+  const BOOKMARKLET = "javascript:(()=>{const D=/(\\d{1,2})\\s*[\\/月]\\s*(\\d{1,2})/;const tx=c=>{const n=c.cloneNode(true);n.querySelectorAll('img').forEach(i=>i.replaceWith(i.alt||i.title||''));n.querySelectorAll('br').forEach(b=>b.replaceWith(' '));return(n.textContent||'').replace(/\\s+/g,' ').trim()};let best=null,bt=null,bs=0;document.querySelectorAll('table').forEach(t=>{const r=[...t.rows].map(x=>[...x.cells].map(tx));const s=r.filter(x=>D.test(x[0]||'')).length+(r[0]||[]).filter(v=>D.test(v)).length;if(s>bs){bs=s;best=r;bt=t}});if(!best){alert('伝助の出欠表が見つかりませんでした');return}const all=document.body.innerText||'';const last=bt.rows[bt.rows.length-1];const lt=(last.innerText||'').trim().split('\\n').pop().split('\\t').pop().trim();let i=lt?all.lastIndexOf(lt):-1;const after=i>=0?all.slice(i+lt.length,i+lt.length+6000):'';const out='#takubiyori\\n'+document.title.replace(/\\s+/g,' ')+'\\n'+best.filter(r=>r.some(Boolean)).map(r=>r.map(v=>v.replace(/\\t/g,' ')).join('\\t')).join('\\n')+'\\n#comments\\n'+after;const ask=()=>prompt('自動コピーできませんでした。この文字を全部コピーしてください',out);navigator.clipboard?navigator.clipboard.writeText(out).then(()=>alert('コピーしました。MeeTRPGの取り込み欄に貼り付けてください'),ask):ask()})()";
   const DATE_RE = /(?:(\d{4})\s*[\/年.-]\s*)?(\d{1,2})\s*[\/月.-]\s*(\d{1,2})\s*日?/;
   const isDateish = (s) => DATE_RE.test(s || "");
   const COMMENT_RE = /^(コメント|備考|メモ)$/;
@@ -765,12 +765,12 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     </div>`;
     if (S.canWrite) html += `<div class="quick"><button type="button" class="primary big" id="clip-go">コピーした伝助を読み込む</button><textarea id="imp-quick" placeholder="ボタンが使えない時は、ここを長押し → ペースト（同じ名前の表は新しい回答に更新）"></textarea><div id="quick-msg" class="small"></div></div>`;
     html += `<details class="import" id="imp"${S.importOpen || !S.polls.length ? " open" : ""}><summary>そのほかの取り込み方・ブックマークの準備</summary>
-      <div class="bm small"><b>スマホで一番手軽な方法</b>：伝助のページで「卓日和にコピー」ブックマークをタップ → この欄に貼り付けるだけで、コメントごと自動で取り込まれます。
+      <div class="bm small"><b>スマホで一番手軽な方法</b>：伝助のページで「MeeTRPGにコピー」ブックマークをタップ → この欄に貼り付けるだけで、コメントごと自動で取り込まれます。
         <details><summary>ブックマークの準備（最初の1回だけ）</summary>
           <ol class="bm-steps">
             <li>下のボタンでブックマーク用の文字をコピーします。</li>
-            <li>ブラウザでこのページか好きなページをブックマークし、名前を「卓日和にコピー」に、URLをコピーした文字に置き換えて保存します。</li>
-            <li>iPhone（Safari）：伝助のページでブックマーク一覧から「卓日和にコピー」をタップ。<br>Android（Chrome）：伝助のページでアドレスバーに「卓日和にコピー」と打ち、候補に出たブックマークをタップ。</li>
+            <li>ブラウザでこのページか好きなページをブックマークし、名前を「MeeTRPGにコピー」に、URLをコピーした文字に置き換えて保存します。</li>
+            <li>iPhone（Safari）：伝助のページでブックマーク一覧から「MeeTRPGにコピー」をタップ。<br>Android（Chrome）：伝助のページでアドレスバーに「MeeTRPGにコピー」と打ち、候補に出たブックマークをタップ。</li>
           </ol>
           <div class="row"><button type="button" id="bm-copy">ブックマーク用の文字をコピー</button></div>
           <div id="bm-host"></div>
@@ -980,15 +980,15 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     $("#clip-go")?.addEventListener("click", async () => {
       try {
         const v = await navigator.clipboard.readText();
-        if (!v.trim()) { $("#quick-msg").textContent = "クリップボードが空です。伝助のページで「卓日和にコピー」を押してから読み込んでください。"; return; }
-        if (!/\t/.test(v)) { $("#quick-msg").textContent = "クリップボードの中身が伝助の表ではありませんでした。伝助のページで「卓日和にコピー」を押してください。"; return; }
+        if (!v.trim()) { $("#quick-msg").textContent = "クリップボードが空です。伝助のページで「MeeTRPGにコピー」を押してから読み込んでください。"; return; }
+        if (!/\t/.test(v)) { $("#quick-msg").textContent = "クリップボードの中身が伝助の表ではありませんでした。伝助のページで「MeeTRPGにコピー」を押してください。"; return; }
         doImport(v);
       } catch { $("#quick-msg").textContent = "クリップボードを読めませんでした。下の欄に長押しで貼り付けてください。"; }
     });
     $("#imp-quick")?.addEventListener("input", (e) => {
       const v = e.target.value;
       if (/^\s*#takubiyori\n[\s\S]*\t/.test(v) || (/\t/.test(v) && /\d{1,2}\/\d{1,2}/.test(v))) { doImport(v); }
-      else if (v.trim()) { $("#quick-msg").textContent = "伝助の表として読めませんでした。伝助のページで「卓日和にコピー」を押してから貼り付けてください。"; }
+      else if (v.trim()) { $("#quick-msg").textContent = "伝助の表として読めませんでした。伝助のページで「MeeTRPGにコピー」を押してから貼り付けてください。"; }
     });
     // ブックマークレットでコピーした内容は、貼り付けただけで取り込む
     $("#imp-text")?.addEventListener("input", () => { if (/^\s*#takubiyori\n[\s\S]*\t/.test($("#imp-text").value)) doImport(); });
@@ -1131,7 +1131,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
     $("#sess-filter")?.addEventListener("change", (e) => { S.sessFilter = e.target.value; renderSessions(); });
     $("#sess-cand")?.addEventListener("change", (e) => { S.sessWithCand = e.target.checked; renderSessions(); });
     $("#bulk-discord")?.addEventListener("click", () => copyText(summaryText(bulk, heading), $("#ics-all-host")));
-    $("#ics-all")?.addEventListener("click", () => saveIcs(bulk, `卓日和_${heading}`, $("#ics-all-host")));
+    $("#ics-all")?.addEventListener("click", () => saveIcs(bulk, `MeeTRPG_${heading}`, $("#ics-all-host")));
     bindSessionCards(el);
   }
 
@@ -1534,7 +1534,7 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
       for (const col of ["polls", "sessions", "scenarios"]) S[col] = Array.isArray(d[col]) ? d[col] : [];
       sortAll(); persist(); renderAll();
       $("#bk-msg").textContent = `復元しました（調整表 ${S.polls.length}・セッション ${S.sessions.length}・シナリオ ${S.scenarios.length}）`;
-    } catch { $("#bk-msg").textContent = "卓日和のバックアップファイルではありませんでした。"; }
+    } catch { $("#bk-msg").textContent = "MeeTRPGのバックアップファイルではありませんでした。"; }
     e.target.value = "";
   });
 
