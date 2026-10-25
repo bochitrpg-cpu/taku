@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#5230b0">
+<meta name="theme-color" content="#0065B2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="MeeTRPG">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%235230b0'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='sans-serif'%3E卓%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230065B2'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='sans-serif'%3E卓%3C/text%3E%3C/svg%3E">
 <style>[hidden]{display:none!important} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0;font-size:14px}</style>
 <title>MeeTRPG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,28 +17,29 @@
 <style>
 /* Layout: 一枚の卓日誌。上に今後のセッション、下にタブで集計・確定日・シナリオ */
 /* ======================================================================
-   TRPG補助ツール 共通テーマ（菫 × スクエア）  2026-10-25
+   TRPG補助ツール 共通テーマ（9色の配色 × スクエア）  2026-10-25 菫から変更
    各ツールにこのブロックをそのまま入れ、画面の色・形はこの変数だけで書く。
    ライト／ダークは端末の設定に合わせ、<html data-theme="light|dark"> で手動切替。
    ====================================================================== */
 :root {
-  /* 面と文字 */
-  --bg: #f5f4f9;
-  --panel: #ffffff;
-  --panel2: #f2f0f8;
-  --ink: #17161f;
-  --muted: #63636f;
-  --line: #e2e0eb;
-  --line2: #cdcadb;
-  /* 差し色（押す場所・選択中・入力中だけ） */
-  --accent: #5230b0;
-  --accent-soft: rgba(82, 48, 176, .10);
+  /* 面と文字（指定の9色: #0065B2 #67A5DA #FDFDFB #E5EAEB #C8BCA0 #C19969 #B8C2C8 #FBE4E2 #DB077F） */
+  --bg: #f2f4f4;
+  --panel: #FDFDFB;
+  --panel2: #E5EAEB;
+  --ink: #15283a;
+  --muted: #5c6a75;
+  --line: #dae0e2;
+  --line2: #B8C2C8;
+  /* 差し色（押す場所・選択中・入力中だけ）と見出し */
+  --accent: #0065B2;
+  --accent-soft: rgba(0, 101, 178, .10);
   --on-accent: #ffffff;
   /* 意味のある色（差し色とは別に固定） */
   --ok: #23714a;    --ok-bg: #dcf0e4;
   --warn: #8a5a00;  --warn-bg: #f7ead0;
   --ng: #a8322e;    --ng-bg: #f6dcda;
-  --k-head: #2f63c0; --k-memo: #a36d06; --k-pnl: #1f8a7e;
+  /* 行の種類：見出し＝藍、GMメモ＝#C19969 系、パネル操作＝青緑 #3E9C9A 系、強調＝#DB077F 系（文字に使うときは濃くする） */
+  --k-head: #0065B2; --k-memo: #8f6a3a; --k-pnl: #2a7a78; --k-pink: #b0056a;
   /* フォント：見出しは Google Fonts（Oxanium 800 + Murecho 900）を読み込む。本文は同梱せず端末にあるものを上から順に使う
      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@800&family=Murecho:wght@900&display=swap"> */
   --f-jp: "Yu Gothic Medium", "游ゴシック Medium", YuGothic, "游ゴシック体", "Yu Gothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Noto Sans JP", Meiryo, sans-serif;
@@ -53,18 +54,18 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0a0f; --panel: #121219; --panel2: #1a1a23; --ink: #ececf2; --muted: #9a9aa8; --line: #272731; --line2: #383843;
-    --accent: #a78bfa; --accent-soft: rgba(167, 139, 250, .15); --on-accent: #12082e;
+    --bg: #0c141c; --panel: #121d27; --panel2: #1a2733; --ink: #e9eef1; --muted: #9aa7b1; --line: #22313e; --line2: #344656;
+    --accent: #4f9be0; --accent-soft: rgba(79, 155, 224, .16); --on-accent: #06121d;
     --ok: #7fcfa0; --ok-bg: rgba(127, 207, 160, .13); --warn: #e9b85a; --warn-bg: rgba(233, 184, 90, .13); --ng: #f0948e; --ng-bg: rgba(240, 148, 142, .13);
-    --k-head: #8fb3ff; --k-memo: #d9a441; --k-pnl: #3cc0b0;
+    --k-head: #79b4ea; --k-memo: #d6b48b; --k-pnl: #74c9c4; --k-pink: #f067ad;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0a0a0f; --panel: #121219; --panel2: #1a1a23; --ink: #ececf2; --muted: #9a9aa8; --line: #272731; --line2: #383843;
-  --accent: #a78bfa; --accent-soft: rgba(167, 139, 250, .15); --on-accent: #12082e;
+  --bg: #0c141c; --panel: #121d27; --panel2: #1a2733; --ink: #e9eef1; --muted: #9aa7b1; --line: #22313e; --line2: #344656;
+  --accent: #4f9be0; --accent-soft: rgba(79, 155, 224, .16); --on-accent: #06121d;
   --ok: #7fcfa0; --ok-bg: rgba(127, 207, 160, .13); --warn: #e9b85a; --warn-bg: rgba(233, 184, 90, .13); --ng: #f0948e; --ng-bg: rgba(240, 148, 142, .13);
-  --k-head: #8fb3ff; --k-memo: #d9a441; --k-pnl: #3cc0b0;
+  --k-head: #79b4ea; --k-memo: #d6b48b; --k-pnl: #74c9c4; --k-pink: #f067ad;
   color-scheme: dark;
 }
 
@@ -96,7 +97,7 @@ body {
   padding-block: 20px 48px;
 }
 .wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
-header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
 h1 { font-family: var(--f-display); font-weight: var(--w-head); font-size: 30px; margin: 0; letter-spacing: .02em; }
 .sub { color: var(--muted); font-size: 13px; }
 h2 { font-family: var(--f-head); font-weight: var(--w-head); font-size: 18px; margin: 0; text-wrap: balance; letter-spacing: .02em; }
