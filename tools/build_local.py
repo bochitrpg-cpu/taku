@@ -45,14 +45,14 @@ rep('''    host.innerHTML = `<div class="small muted">ファイルを保存で�
     host.innerHTML = `<div class="small muted">ファイルを保存できない環境です。''')
 
 # 3) clipboard button
-rep('''<textarea id="imp-quick" placeholder="伝助で「卓日和にコピー」したら、ここを長押し → ペースト。それだけで読み込みます（同じ名前の表は新しい回答に更新）"></textarea>''',
+rep('''<textarea id="imp-quick" placeholder="伝助で「MeeTRPGにコピー」したら、ここを長押し → ペースト。それだけで読み込みます（同じ名前の表は新しい回答に更新）"></textarea>''',
 '''<button type="button" class="primary big" id="clip-go">コピーした伝助を読み込む</button><textarea id="imp-quick" placeholder="ボタンが使えない時は、ここを長押し → ペースト（同じ名前の表は新しい回答に更新）"></textarea>''')
 rep('''    $("#imp-go")?.addEventListener("click", () => doImport());''', '''    $("#imp-go")?.addEventListener("click", () => doImport());
     $("#clip-go")?.addEventListener("click", async () => {
       try {
         const v = await navigator.clipboard.readText();
-        if (!v.trim()) { $("#quick-msg").textContent = "クリップボードが空です。伝助のページで「卓日和にコピー」を押してから読み込んでください。"; return; }
-        if (!/\\t/.test(v)) { $("#quick-msg").textContent = "クリップボードの中身が伝助の表ではありませんでした。伝助のページで「卓日和にコピー」を押してください。"; return; }
+        if (!v.trim()) { $("#quick-msg").textContent = "クリップボードが空です。伝助のページで「MeeTRPGにコピー」を押してから読み込んでください。"; return; }
+        if (!/\\t/.test(v)) { $("#quick-msg").textContent = "クリップボードの中身が伝助の表ではありませんでした。伝助のページで「MeeTRPGにコピー」を押してください。"; return; }
         doImport(v);
       } catch { $("#quick-msg").textContent = "クリップボードを読めませんでした。下の欄に長押しで貼り付けてください。"; }
     });''')
@@ -82,7 +82,7 @@ rep('''  document.querySelectorAll("[data-tab]").forEach((b) => b.addEventListen
       for (const col of ["polls", "sessions", "scenarios"]) S[col] = Array.isArray(d[col]) ? d[col] : [];
       sortAll(); persist(); renderAll();
       $("#bk-msg").textContent = `復元しました（調整表 ${S.polls.length}・セッション ${S.sessions.length}・シナリオ ${S.scenarios.length}）`;
-    } catch { $("#bk-msg").textContent = "卓日和のバックアップファイルではありませんでした。"; }
+    } catch { $("#bk-msg").textContent = "MeeTRPGのバックアップファイルではありませんでした。"; }
     e.target.value = "";
   });''')
 rep('''.quick { display: grid; gap: 4px; }''', '''.quick { display: grid; gap: 6px; }
@@ -99,8 +99,9 @@ head = '''<!doctype html>
 <meta name="theme-color" content="#1f6f5c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="卓日和">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f6f5c'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='white' font-family='sans-serif'%3E卓%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-title" content="MeeTRPG">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>[hidden]{display:none!important} :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} body{margin:0;font-size:14px}</style>
 '''
 t_end = h.index('</style>') + len('</style>')
