@@ -1,7 +1,7 @@
 /**
- * 卓日和が Webhook で送った告知文を読み取り、予定の一覧・リマインドを作る(Discordに触れない純粋関数)。
+ * MeeTRPGが Webhook で送った告知文を読み取り、予定の一覧・リマインドを作る(Discordに触れない純粋関数)。
  *
- * 告知文の形(卓日和の discordText と同じ):
+ * 告知文の形(MeeTRPGの discordText と同じ):
  *   **【セッション確定】タイトル**            ← 候補日なら【候補日】
  *   日時: <t:開始:F> 〜 <t:終了:t>             ← 1件のとき
  *   参加: Aさん、Bさん
@@ -31,7 +31,7 @@ const HEAD = /^\*\*【(セッション確定|候補日)】(.+?)\*\*\s*$/;
 const RANGE = /<t:(\d+):[a-zA-Z]>\s*〜\s*<t:(\d+):[a-zA-Z]>/;
 const splitNames = (s: string) => s.split(/[、,，]/).map((x) => x.trim()).filter(Boolean);
 
-/** 告知文1件を予定のリストにする。卓日和の告知でなければ空 */
+/** 告知文1件を予定のリストにする。MeeTRPGの告知でなければ空 */
 export function parseAnnouncement(msg: AnnouncementMessage): Session[] {
   const lines = msg.content.split('\n').map((l) => l.trim());
   const head = HEAD.exec(lines[0] ?? '');

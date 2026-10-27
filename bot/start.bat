@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title 卓日和bot
+title MeeTRPG bot
 
 if not exist .env (
   echo .env がありません。README の手順で作成してください。

@@ -352,7 +352,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
   <section class="panel" id="panel-scenarios" hidden></section>
   <details class="backup small" id="dc-set">
     <summary>Discord連携</summary>
-    <div class="muted">卓日和botを入れたDiscordサーバーで、告知用のチャンネルで <b>/告知先</b> を実行すると、Webhook URL が出ます。それをここに貼ると、確定したときにそのチャンネルへ自動で告知します（参加者は <b>/次回</b> で予定を確認でき、開始前にはbotがリマインドします）。</div>
+    <div class="muted">MeeTRPG botを入れたDiscordサーバーで、告知用のチャンネルで <b>/告知先</b> を実行すると、Webhook URL が出ます。それをここに貼ると、確定したときにそのチャンネルへ自動で告知します（参加者は <b>/次回</b> で予定を確認でき、開始前にはbotがリマインドします）。</div>
     <input type="text" id="dc-url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off" inputmode="url">
     <div class="row"><button type="button" id="dc-save">保存</button><button type="button" id="dc-test">テスト送信</button><button type="button" id="dc-clear">連携をやめる</button></div>
     <div id="dc-msg"></div>
@@ -617,7 +617,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     if (list.length === 1 && list[0].note) out.push(list[0].note);
     return out.join("\n");
   }
-  // 卓日和botの告知先チャンネルに Webhook で送る。botはこのWebhookの投稿を読んで /次回 とリマインドに使う
+  // MeeTRPG botの告知先チャンネルに Webhook で送る。botはこのWebhookの投稿を読んで /次回 とリマインドに使う
   const WEBHOOK_RE = /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
   const webhookUrl = () => ls.get("tb.webhook") || "";
   async function hook(method, path, text) {
@@ -1673,7 +1673,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
   });
   $("#dc-test").addEventListener("click", async () => {
     if (!webhookUrl()) { dcMsg("先にURLを保存してください。"); return; }
-    try { await hook("POST", "", "卓日和からのテスト送信です。"); dcMsg("送りました。告知先のチャンネルを確認してください。", true); }
+    try { await hook("POST", "", "MeeTRPGからのテスト送信です。"); dcMsg("送りました。告知先のチャンネルを確認してください。", true); }
     catch { dcMsg("送れませんでした。URLが正しいか、/告知先 をやり直してURLを貼り直してください。"); }
   });
   $("#dc-clear").addEventListener("click", () => { ls.set("tb.webhook", ""); $("#dc-url").value = ""; dcMsg("連携をやめました。", true); renderAll(); });

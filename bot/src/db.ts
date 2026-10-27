@@ -24,9 +24,9 @@ export function openDb(file: string): DatabaseSync {
 
 export interface GuildSetting {
   guildId: string;
-  /** 卓日和の告知が届くチャンネル(リマインドもここに出す) */
+  /** MeeTRPGの告知が届くチャンネル(リマインドもここに出す) */
   channelId: string;
-  /** 卓日和が使う Webhook。このWebhookの投稿だけを告知として読む */
+  /** MeeTRPGが使う Webhook。このWebhookの投稿だけを告知として読む */
   webhookId: string;
   /** リマインドでメンションするロール */
   roleId: string | null;

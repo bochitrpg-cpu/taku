@@ -28,12 +28,12 @@ const repo = new Repo(openDb(process.env['DATABASE_PATH'] ?? './data/app.db'));
 const remindMinutes = parseMinutes(process.env['REMIND_MINUTES']);
 /** 告知を読みにいく、さかのぼるメッセージ数の上限(100件ずつ) */
 const HISTORY_PAGES = 5;
-const WEBHOOK_NAME = '卓日和';
+const WEBHOOK_NAME = 'MeeTRPG';
 
 const commands = [
   new SlashCommandBuilder()
     .setName('告知先')
-    .setDescription('このチャンネルを卓日和の告知先にして、卓日和に入れるWebhook URLを出します')
+    .setDescription('このチャンネルをMeeTRPGの告知先にして、MeeTRPGに入れるWebhook URLを出します')
     .addRoleOption((o) => o.setName('ロール').setDescription('リマインドでメンションするロール(任意)'))
     .setDefaultMemberPermissions(P.ManageGuild)
     .setDMPermission(false),
@@ -85,17 +85,17 @@ async function onSetChannel(it: ChatInputCommandInteraction<'cached'>) {
     await it.editReply(`このチャンネルで、botに次の権限がありません: ${lacking.join('、')}\nbotのロールかチャンネルの権限設定で許可してから、もう一度実行してください。`);
     return;
   }
-  // 同じチャンネルに前に作ったWebhookがあれば使い回す(卓日和に入れたURLが変わらないように)
+  // 同じチャンネルに前に作ったWebhookがあれば使い回す(MeeTRPGに入れたURLが変わらないように)
   const old = repo.getGuild(it.guildId);
   const hooks = await ch.fetchWebhooks();
   let hook = hooks.find((h) => h.id === old?.webhookId) ?? hooks.find((h) => h.owner?.id === client.user?.id && h.name === WEBHOOK_NAME);
-  if (!hook) hook = await ch.createWebhook({ name: WEBHOOK_NAME, reason: '卓日和からの告知用' });
+  if (!hook) hook = await ch.createWebhook({ name: WEBHOOK_NAME, reason: 'MeeTRPGからの告知用' });
   const role = it.options.getRole('ロール');
   repo.setGuild({ guildId: it.guildId, channelId: ch.id, webhookId: hook.id, roleId: role?.id ?? null });
   await it.editReply(
     [
       `このチャンネル(<#${ch.id}>)を告知先にしました。${role ? `リマインドでは <@&${role.id}> をメンションします。` : ''}`,
-      '卓日和の「Discord連携」に、次のURLを貼り付けてください(このURLは他の人に見せないでください)。',
+      'MeeTRPGの「Discord連携」に、次のURLを貼り付けてください(このURLは他の人に見せないでください)。',
       '```',
       hook.url,
       '```',
@@ -114,7 +114,7 @@ async function onNext(it: ChatInputCommandInteraction<'cached'>) {
   await it.editReply({ content: nextText(sessions, Date.now()), allowedMentions: { parse: [] } });
 }
 
-/** 告知先チャンネルから、卓日和のWebhookの投稿だけを集める */
+/** 告知先チャンネルから、MeeTRPGのWebhookの投稿だけを集める */
 async function fetchAnnouncements(g: GuildSetting): Promise<AnnouncementMessage[]> {
   const ch = await client.channels.fetch(g.channelId).catch(() => null);
   if (!ch || !ch.isTextBased() || ch.isDMBased()) throw new Error('告知先のチャンネルが見つかりません。/告知先 をもう一度実行してください。');

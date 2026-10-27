@@ -44,7 +44,7 @@ describe('告知文の読み取り', () => {
     const [s] = parseAnnouncement(m);
     assert.equal(s!.tentative, true);
   });
-  it('卓日和の告知でないものは無視', () => {
+  it('MeeTRPGの告知でないものは無視', () => {
     assert.deepEqual(parseAnnouncement({ id: 'x', createdAt: 0, content: 'こんにちは <t:1:F> 〜 <t:2:t>' }), []);
     assert.deepEqual(parseAnnouncement({ id: 'x', createdAt: 0, content: '**【日程まとめ】紅の館**\n・<t:1:F> 〜 <t:2:t>　紅の館' }), []);
   });
