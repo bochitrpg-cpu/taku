@@ -350,6 +350,13 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
   <section class="panel" id="panel-tally"></section>
   <section class="panel" id="panel-sessions" hidden></section>
   <section class="panel" id="panel-scenarios" hidden></section>
+  <details class="backup small" id="dc-set">
+    <summary>Discord連携</summary>
+    <div class="muted">MeeTRPG botを入れたDiscordサーバーで、告知用のチャンネルで <b>/告知先</b> を実行すると、Webhook URL が出ます。それをここに貼ると、確定したときにそのチャンネルへ自動で告知します（参加者は <b>/次回</b> で予定を確認でき、開始前にはbotがリマインドします）。</div>
+    <input type="text" id="dc-url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off" inputmode="url">
+    <div class="row"><button type="button" id="dc-save">保存</button><button type="button" id="dc-test">テスト送信</button><button type="button" id="dc-clear">連携をやめる</button></div>
+    <div id="dc-msg"></div>
+  </details>
   <details class="backup small">
     <summary>データのバックアップ</summary>
     <div class="muted">データはこのスマホのブラウザの中だけに保存されています。機種変更やブラウザのデータ削除の前にバックアップを保存してください。</div>
@@ -610,6 +617,38 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     if (list.length === 1 && list[0].note) out.push(list[0].note);
     return out.join("\n");
   }
+  // MeeTRPG botの告知先チャンネルに Webhook で送る。botはこのWebhookの投稿を読んで /次回 とリマインドに使う
+  const WEBHOOK_RE = /^https:\/\/(?:(?:canary|ptb)\.)?discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
+  const webhookUrl = () => ls.get("tb.webhook") || "";
+  async function hook(method, path, text) {
+    const r = await fetch(webhookUrl() + path, {
+      method, headers: text == null ? {} : { "Content-Type": "application/json" },
+      body: text == null ? undefined : JSON.stringify({ content: text, allowed_mentions: { parse: [] } }),
+    });
+    if (method === "DELETE" && r.status === 404) return null;
+    if (!r.ok) throw new Error(`Discord ${r.status}`);
+    return method === "DELETE" ? null : r.json();
+  }
+  // 同じ告知にまとめて載せた予定（シナリオの案で確定したパートなど）
+  const groupOf = (msgId) => S.sessions.filter((x) => x.discordMsg === msgId);
+  const groupText = (list) => discordText(list, list.length > 1 ? list[0].scenario || list[0].title : undefined);
+  /** 予定を1件の告知として送り、送った告知のIDを予定に記録する */
+  async function announce(list) {
+    if (!webhookUrl() || !list.length) return false;
+    try {
+      const m = await hook("POST", "?wait=true", groupText(list));
+      for (const s of list) { const { id, ...rest } = s; await setDoc("sessions", id, { ...rest, discordMsg: m.id }); }
+      toast("Discordに告知しました"); return true;
+    } catch { toast("Discordに送れませんでした。Discord連携のURLを確認してください。"); return false; }
+  }
+  /** 予定を取り消した・確定にしたあと、元の告知を残りの予定で書き直す（残りがなければ消す） */
+  async function resyncAnnouncement(msgId) {
+    if (!msgId || !webhookUrl()) return;
+    const rest = groupOf(msgId);
+    try { rest.length ? await hook("PATCH", `/messages/${msgId}`, groupText(rest)) : await hook("DELETE", `/messages/${msgId}`); }
+    catch { toast("Discordの告知を更新できませんでした"); }
+  }
+
   async function copyText(text, host) {
     try { await navigator.clipboard.writeText(text); toast("コピーしました"); }
     catch {
@@ -1067,7 +1106,11 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
       };
       const tentative = !!S.confirm?.tentative;
       if (tentative) { s.tentative = true; s.pending = poll.players.filter((p) => isPending(p, S.confirm.si) && s.members.includes(p.name)).map((p) => p.name); }
-      try { await addDoc("sessions", s); S.confirm = null; toast(tentative ? "候補日に追加しました" : "確定日に追加しました"); renderAll(); }
+      try {
+        const id = await addDoc("sessions", s); S.confirm = null; toast(tentative ? "候補日に追加しました" : "確定日に追加しました");
+        if (!tentative) await announce([S.sessions.find((x) => x.id === id)]);
+        renderAll();
+      }
       catch (err) { toast(writeErr(err)); }
     });
     $("#memo-bulk-go")?.addEventListener("click", async () => {
@@ -1093,7 +1136,13 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
         const host = $("[data-host]", card);
         $("[data-plan-copy]", card)?.addEventListener("click", () => copyText(discordText(planSessions(poll, scen, plan, tentative), scen.name), host));
         $("[data-plan-ok]", card)?.addEventListener("click", async () => {
-          try { for (const s of planSessions(poll, scen, plan, tentative)) await addDoc("sessions", s); toast(`${plan.length}件を${tentative ? "候補日" : "確定日"}に追加しました`); renderAll(); }
+          try {
+            const ids = [];
+            for (const s of planSessions(poll, scen, plan, tentative)) ids.push(await addDoc("sessions", s));
+            toast(`${plan.length}件を${tentative ? "候補日" : "確定日"}に追加しました`);
+            if (!tentative) await announce(ids.map((id) => S.sessions.find((x) => x.id === id)));
+            renderAll();
+          }
           catch (err) { toast(writeErr(err)); }
         });
       });
@@ -1119,6 +1168,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
         <a class="btn" href="${esc(gcalUrl(s))}" target="_blank" rel="noopener">Googleカレンダーに追加</a>
         <button data-ics>.icsで保存</button>
         <button data-discord>Discord用にコピー</button>
+        ${webhookUrl() ? (s.discordMsg ? `<span class="small muted">Discord告知済み</span>` : `<button data-announce>Discordに告知</button>`) : ""}
         ${s.tentative && S.canWrite ? `<button class="primary" data-fix>確定にする</button>` : ""}
         ${withDelete && S.canWrite ? `<button class="danger" data-del>取り消す</button>` : ""}
       </div>
@@ -1131,14 +1181,21 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
       const host = $("[data-host]", card);
       $("[data-ics]", card)?.addEventListener("click", () => saveIcs([s], s.title, host));
       $("[data-discord]", card)?.addEventListener("click", () => copyText(discordText([s]), host));
+      $("[data-announce]", card)?.addEventListener("click", async () => { await announce([s]); renderAll(); });
       $("[data-fix]", card)?.addEventListener("click", async () => {
-        const { id, tentative, pending, ...rest } = s;
-        try { await setDoc("sessions", s.id, rest); toast("確定にしました"); renderAll(); } catch (e) { toast(writeErr(e)); }
+        const { id, tentative, pending, discordMsg, ...rest } = s;
+        try {
+          await setDoc("sessions", s.id, rest); toast("確定にしました");
+          // 候補日の告知から外して、確定として告知し直す
+          await resyncAnnouncement(discordMsg);
+          await announce([S.sessions.find((x) => x.id === s.id)]);
+          renderAll();
+        } catch (e) { toast(writeErr(e)); }
       });
       $("[data-del]", card)?.addEventListener("click", () => {
         host.innerHTML = `<div class="row"><span class="small">この確定日を取り消しますか？</span><button class="danger" data-yes>取り消す</button><button data-no>やめる</button></div>`;
         $("[data-no]", host).onclick = () => (host.innerHTML = "");
-        $("[data-yes]", host).onclick = async () => { try { await delDoc("sessions", s.id); toast("取り消しました"); renderAll(); } catch (e) { toast(writeErr(e)); } };
+        $("[data-yes]", host).onclick = async () => { try { await delDoc("sessions", s.id); toast("取り消しました"); await resyncAnnouncement(s.discordMsg); renderAll(); } catch (e) { toast(writeErr(e)); } };
       });
     });
   }
@@ -1606,6 +1663,20 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     } catch { $("#bk-msg").textContent = "MeeTRPGのバックアップファイルではありませんでした。"; }
     e.target.value = "";
   });
+
+  $("#dc-url").value = webhookUrl();
+  const dcMsg = (t, ok) => { $("#dc-msg").textContent = t; $("#dc-msg").style.color = ok ? "var(--ok)" : "var(--ng)"; };
+  $("#dc-save").addEventListener("click", () => {
+    const v = $("#dc-url").value.trim();
+    if (!WEBHOOK_RE.test(v)) { dcMsg("Webhook URL の形ではありません。/告知先 で出たURLをそのまま貼ってください。"); return; }
+    ls.set("tb.webhook", v); dcMsg("保存しました。これから確定した予定は自動で告知します。", true); renderAll();
+  });
+  $("#dc-test").addEventListener("click", async () => {
+    if (!webhookUrl()) { dcMsg("先にURLを保存してください。"); return; }
+    try { await hook("POST", "", "MeeTRPGからのテスト送信です。"); dcMsg("送りました。告知先のチャンネルを確認してください。", true); }
+    catch { dcMsg("送れませんでした。URLが正しいか、/告知先 をやり直してURLを貼り直してください。"); }
+  });
+  $("#dc-clear").addEventListener("click", () => { ls.set("tb.webhook", ""); $("#dc-url").value = ""; dcMsg("連携をやめました。", true); renderAll(); });
 
   S.pollId = ls.get("tb.poll"); S.scenarioId = ls.get("tb.scen") || "";
   showTab(["tally", "sessions", "scenarios"].includes(ls.get("tb.tab")) ? ls.get("tb.tab") : "tally");
