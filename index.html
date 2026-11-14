@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0065B2">
+<meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="MeeTRPG">
@@ -13,8 +13,8 @@
 <title>MeeTRPG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@800&family=Murecho:wght@900&display=swap">
-<script>try { const t = localStorage.getItem("takubiyori.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch (_) {}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+JP:wght@300;400;500;600&family=Oxanium:wght@300;400;500;600&display=swap">
+<script>document.documentElement.dataset.theme = "light";</script>
 <style>
 /* Layout: 一枚の卓日誌。上に今後のセッション、下にタブで集計・確定日・シナリオ */
 /* ======================================================================
@@ -323,6 +323,241 @@ button.quick.on { background: var(--accent); color: var(--accent-ink); border-co
 header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+<style>
+/* ===== Detroit 風デザイン（2026-11-11 決定。design-unify/dbh-tools/meetrpg の dbh.css＋board-decided.css） ===== */
+/* MeeTRPG Detroit 風（SenderKun 決定版 2026-11-11 に合わせる見本） */
+:root,:root[data-theme]{--bg:#fff;--panel:#fff;--panel2:#f3f6f9;--surface:#fff;--face:#f3f6f9;--ink:#1a2230;--muted:#66758a;--faint:#aab6c4;--line:rgba(30,70,120,.12);--line2:rgba(30,70,120,.22);
+--accent:#1493ff;--accent-soft:rgba(20,147,255,.08);--cue:#1493ff;--ok:#12a3a8;--ok-bg:color-mix(in srgb,#12a3a8 8%,#fff);--warn:#a8850a;--warn-bg:#fbf5df;--maybe:#a8850a;--maybe-bg:#fbf5df;--ng:#f0445a;--ng-bg:#fdeef0;
+--hl:var(--ok-bg);--hl-weak:#fbf5df;
+--f-jp:"Inter","Noto Sans JP",sans-serif;--f-head:var(--f-jp);--f-body:var(--f-jp);--f-mono:'Oxanium',"Inter","Noto Sans JP",sans-serif;--f-display:var(--f-jp);--ox:'Oxanium',"Inter",sans-serif;--w-head:300;
+--lA:#1493ff;--lB:#12a3a8;--lC:#e64a7b;--lD:#c9a227;color-scheme:light}
+body{background:#fff;color:var(--ink);font-family:var(--f-jp);font-size:14px;letter-spacing:.02em}
+.wrap{gap:26px}
+b,strong{font-weight:500}
+/* ロゴ */
+header.top{border-bottom:0;padding-bottom:0;gap:4px 12px;align-items:center}
+header.top h1{font:400 20px var(--ox)!important;letter-spacing:.24em!important;text-transform:uppercase}
+header.top .sub{flex-basis:100%;order:3;font-size:12px;color:var(--muted)}
+.theme{margin-left:auto;font-size:12px!important;color:var(--muted)!important}
+/* 画面の見出し：大きく細い字＋英字 */
+.tk-sec{border-bottom:0;padding-bottom:0;align-items:baseline;gap:12px}
+.tk-sec>:first-child{font:300 24px var(--f-jp)!important;letter-spacing:.08em}
+.tk-sec .tk-en{margin-left:0;font:500 9px var(--ox);letter-spacing:.3em;color:var(--cue)}
+h2{font:300 20px var(--f-jp)!important;letter-spacing:.06em!important}
+h3{font:400 15px var(--f-jp);letter-spacing:.04em}
+.sh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sh .en{font:500 9px var(--ox);letter-spacing:.3em;color:var(--cue)}
+.sh::after{content:'';flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--line2),transparent)}
+.muted,.small.muted{color:var(--muted)}
+/* セッションの札：淡い面・枠なし・カギなし */
+.tk-frame,.card{background:var(--face)!important;border:0!important;border-radius:5px;padding:16px 16px 14px;gap:8px}
+.card.tentative{background:#fff!important;box-shadow:inset 0 0 0 1px var(--line2)!important}
+.sess-day{font:400 26px var(--ox)!important;letter-spacing:.04em}
+.sess-time{font:400 15px var(--ox);color:var(--muted);letter-spacing:.06em}
+.sess-title{font:400 16px var(--f-jp);letter-spacing:.04em}
+.pend{font-size:12px;color:var(--warn)}
+.pend b{font:500 9px var(--ox);letter-spacing:.3em;color:var(--warn);margin-right:6px}
+.chip{background:#fff;box-shadow:inset 0 0 0 1px var(--line2);border-radius:3px;font-size:12px;padding:1px 8px;color:var(--ink)}
+.role{background:none;font:500 10px var(--ox);letter-spacing:.14em;color:var(--cue);padding:0}
+/* ボタン：細枠・白地・角 5px。主なボタンは青の細枠 */
+button,.btn{border-radius:5px;border:0!important;box-shadow:inset 0 0 0 1px var(--line2);background:#fff;color:var(--ink);font:400 13px var(--f-jp);padding:6px 12px}
+button:hover,.btn:hover{box-shadow:inset 0 0 0 1px var(--cue)}
+button.primary{background:#fff;color:var(--cue);box-shadow:inset 0 0 0 1px rgba(20,147,255,.6),0 0 10px rgba(20,147,255,.12);font-weight:400}
+button.danger{color:var(--ng);box-shadow:inset 0 0 0 1px rgba(240,68,90,.35)}
+button.big{padding:12px 14px;font-size:15px}
+/* タブ：SenderKun のビュータブ */
+.tabs{border-bottom:1px solid var(--line);gap:22px;margin-bottom:-6px}
+.tabs button{box-shadow:none!important;border:0!important;border-radius:0;padding:0 0 10px;font:400 15px var(--f-jp);color:var(--muted);font-weight:400!important;background:none}
+.tabs button[aria-selected="true"]{color:var(--ink);box-shadow:inset 0 -2px 0 var(--cue)!important}
+.tabs .en{font:500 8px var(--ox);letter-spacing:.28em;color:var(--faint);margin-left:6px}
+.tabs button[aria-selected="true"] .en{color:var(--cue)}
+/* 入力欄：下線だけ。複数行は淡い面 */
+select,input[type="text"],input[type="datetime-local"]{border:0!important;border-radius:0;background:transparent;box-shadow:inset 0 -1px 0 var(--line2);padding:6px 2px;font-family:var(--f-jp)}
+textarea,.quick textarea{border:0!important;background:var(--face);border-radius:5px;font-family:var(--f-jp);font-size:13px}
+.field{font-size:11px;color:var(--muted);letter-spacing:.06em}
+details>summary{font-weight:400;color:var(--ink);list-style:none;display:flex;align-items:center;gap:8px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:'';width:5px;height:5px;border-right:1px solid var(--cue);border-bottom:1px solid var(--cue);transform:rotate(-45deg);transition:transform .15s;flex:none}
+details[open]>summary::before{transform:rotate(45deg)}
+.bm{background:var(--face);border:0;border-radius:5px}
+.notice{border:0;background:var(--face);border-radius:5px;color:var(--muted)}
+.notice.warn{background:var(--ng-bg);box-shadow:inset 2px 0 0 var(--ng);border-radius:0 5px 5px 0;color:var(--ink)}
+/* 参加できる時間帯：菱形＋行の面 */
+.best{display:grid;gap:4px}
+.best .slot,.best .slot.night,.slot.cand{display:flex;align-items:center;gap:10px;background:var(--face);color:var(--ink);font:400 15px var(--ox);letter-spacing:.04em;padding:9px 12px;border-radius:5px;border:0!important;box-shadow:none;width:100%;text-align:left;flex-wrap:wrap}
+.best .slot::before,.slot.cand::before{content:'';width:7px;height:7px;transform:rotate(45deg);background:var(--ok);flex:none}
+.slot.cand::before{background:none;box-shadow:inset 0 0 0 1px var(--warn)}
+.slot.cand .pend{margin-left:auto;font-family:var(--f-jp)}
+/* 備考：GM と同じ黄の細線 */
+.memo{background:var(--face);border-left:0;box-shadow:inset 2px 0 0 #d4af2a;border-radius:0 5px 5px 0;padding:12px 14px;gap:6px}
+.memo h3{color:var(--ink);font:400 14px var(--f-jp)}
+.memo-name{font-weight:500}
+.memo-line input{background:#fff;border-radius:3px}
+/* 記号の見本 */
+.legend{gap:4px 16px;font-size:12px}
+.mk.w,.mk.o,td.m.w,td.m.o{color:var(--ok)} .mk.d,td.m.d,td.m.n{color:var(--warn)} .mk.x,td.m.x{color:var(--ng)}
+/* 出欠の表：行は淡い面、全員そろう日は青緑の細線、候補日は黄の細線 */
+.tablewrap{border:0;background:none;border-radius:0}
+table.grid{border-collapse:separate;border-spacing:0 4px}
+table.grid th,table.grid td{border:0;background:var(--face)}
+table.grid thead th{background:#fff;font:400 11px var(--f-jp);color:var(--muted)}
+table.grid td.label{font:400 14px var(--ox);border-radius:5px 0 0 5px}
+table.grid td:last-child{border-radius:0 5px 5px 0}
+table.grid tr.all td,table.grid tr.weak td,table.grid tr.cand td{background:var(--face)}
+table.grid tr.all td.label{box-shadow:inset 2px 0 0 var(--ok)}
+table.grid tr.weak td.label{box-shadow:inset 2px 0 0 var(--ok);}
+table.grid tr.cand td.label{box-shadow:inset 2px 0 0 #d4af2a}
+table.grid tr:not(.all):not(.weak):not(.cand) td{background:#fff;color:var(--faint)}
+table.grid tr:not(.all):not(.weak):not(.cand) td.m{opacity:.7}
+td.m{font-weight:400;font-size:15px}
+td.count{font:400 13px var(--ox);color:var(--muted)} td.count.full{color:var(--ok);font-weight:500}
+.has-memo{color:var(--warn);font-weight:400}
+.narrow{font:400 10px var(--ox);color:var(--muted)}
+/* 確定フォーム・まとめ：淡い面のグループ */
+.confirm-form,.bulk{border:0!important;background:var(--face);border-radius:6px;padding:16px}
+.part-edit{border:0;box-shadow:inset 0 0 0 1px rgba(20,147,255,.55),0 0 12px rgba(20,147,255,.12);border-radius:5px;background:#fff}
+.pick label{border:0;box-shadow:inset 0 0 0 1px var(--line2);border-radius:3px;background:#fff}
+.pick label:has(input:checked){background:#fff;box-shadow:inset 0 0 0 1px var(--cue);color:var(--cue)}
+.backup{border-top:1px solid var(--line)}
+/* シナリオのボード：段＝STEP、ラインは色の細線 */
+.b-head .b-lane{font:500 9px var(--ox);letter-spacing:.24em;border-bottom:2px solid var(--line)}
+.b-head .lane-A{border-color:var(--lA);color:var(--lA)} .b-head .lane-B{border-color:var(--lB);color:var(--lB)} .b-head .lane-C{border-color:var(--lC);color:var(--lC)} .b-head .lane-D{border-color:var(--lD);color:var(--lD)}
+.b-step{font:500 9px var(--ox);letter-spacing:.18em;color:var(--faint)}
+.b-cell,.b-cell[class*="lane-"]{border:0!important;background:var(--face);border-radius:4px;box-shadow:inset 2px 0 0 var(--line2)}
+.b-cell.lane-A{box-shadow:inset 2px 0 0 var(--lA)} .b-cell.lane-B{box-shadow:inset 2px 0 0 var(--lB)} .b-cell.lane-C{box-shadow:inset 2px 0 0 var(--lC)} .b-cell.lane-D{box-shadow:inset 2px 0 0 var(--lD)}
+.b-cell.lane-all{border:0!important;background:var(--face);box-shadow:none}
+.b-tag{font:500 9px var(--ox);letter-spacing:.24em;color:var(--cue)}
+.part{border:0;background:#fff;border-radius:4px;box-shadow:none}
+.part.sel{outline:0;box-shadow:inset 0 0 0 1px var(--cue),0 0 10px rgba(20,147,255,.2);background:#fff}
+.p-kind{font-size:10px;color:var(--muted)}
+.p-kp{border:0;font:500 8px var(--ox);letter-spacing:.14em;color:var(--cue);padding:0}
+.p-name{font:400 14px var(--ox)!important;letter-spacing:.06em}
+.p-dur{font:400 11px var(--ox);color:var(--muted)}
+.b-arrow{color:var(--faint)}
+.b-add,.b-grip{border:1px dashed var(--line2);border-radius:4px}
+.b-x{border:0;box-shadow:none;background:none;color:var(--faint)}
+/* 追加ボタン：両端の細いカギ */
+.addb{position:relative;box-shadow:none!important;background:none;color:var(--muted);padding:4px 12px}
+.addb::before,.addb::after{content:'';position:absolute;top:2px;bottom:2px;width:4px;border:1px solid currentColor;opacity:.55}
+.addb::before{left:0;border-right:0}.addb::after{right:0;border-left:0}
+/* 切り替え（Mac 風：灰の溝に白い札） */
+.segmented{display:inline-flex;background:#e9edf2;border-radius:7px;padding:2px;gap:2px}
+.segmented button{box-shadow:none!important;background:none;border-radius:5px;padding:3px 10px;color:var(--muted);font-family:var(--ox)}
+.segmented button.on,.segmented button.on.grp-B,.segmented button.on.grp-C,.segmented button.on.grp-D{background:#fff!important;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12)!important}
+.stepper{display:inline-flex;align-items:center;background:#e9edf2;border-radius:7px;padding:2px}
+.stepper button{box-shadow:none!important;background:none;padding:2px 9px;color:var(--muted)}
+.stepper .mono,.stepper input{font-family:var(--ox)!important;min-width:3em;text-align:center;background:#fff!important;border-radius:5px;box-shadow:0 1px 2px rgba(0,0,0,.1)!important;padding:2px 6px}
+.grp-chip{border:0!important;background:var(--face);box-shadow:inset 2px 0 0 var(--line2);border-radius:0 4px 4px 0}
+.grp-chip.lane-A{box-shadow:inset 2px 0 0 var(--lA)}.grp-chip.lane-B{box-shadow:inset 2px 0 0 var(--lB)}.grp-chip.lane-C{box-shadow:inset 2px 0 0 var(--lC)}.grp-chip.lane-D{box-shadow:inset 2px 0 0 var(--lD)}
+details.tpl{background:var(--face)!important;border-radius:5px}
+.steps{font-size:13px}
+.steps li::marker{font-family:var(--ox);color:var(--cue)}
+.card.plan h3{font:400 15px var(--f-jp)}
+.toast{border-radius:5px}
+/* 仕上げ */
+.sh{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.sh .en{order:-1}
+.sh::after{display:none}
+.sh .cnt{font:400 12px var(--f-jp);color:var(--muted);letter-spacing:.04em}
+.sh .cnt b{font:400 14px var(--ox);color:var(--ink);margin:0 2px}
+.slot.cand{flex-direction:row!important;justify-content:flex-start!important;align-items:center!important}
+.slot.cand .pend{font-size:12px}
+.card .actions{gap:5px}
+.card .actions button,.card .actions .btn{font-size:12px;padding:5px 9px}
+input[type=file]{font-size:12px;color:var(--muted)}
+input[type=file]::file-selector-button{font:400 12px var(--f-jp);border:0;border-radius:5px;box-shadow:inset 0 0 0 1px var(--line2);background:#fff;padding:5px 10px;margin-right:8px;color:var(--ink)}
+input[type=checkbox]{accent-color:var(--cue)}
+.confirm-form details.tpl,.confirm-form textarea,.confirm-form .part-edit{background:#fff!important}
+.confirm-form .b-cell{background:#fff}
+.confirm-form .part{background:var(--face)}
+.confirm-form .b-cell.lane-all{background:#fff}
+.pick label{white-space:nowrap}
+
+/* d: 札をやめ、ラインを色の縦線でつなぐ線の図 */
+.board{gap:0}
+.b-arrow{display:none}
+.b-row{gap:6px}
+.b-row:not(.b-head){padding:0}
+.b-cell,.b-cell[class*="lane-"]{background:none!important;border-radius:0;padding:10px 0 10px 14px}
+.b-cell.lane-A{box-shadow:inset 1px 0 0 var(--lA)}.b-cell.lane-B{box-shadow:inset 1px 0 0 var(--lB)}.b-cell.lane-C{box-shadow:inset 1px 0 0 var(--lC)}.b-cell.lane-D{box-shadow:inset 1px 0 0 var(--lD)}
+.b-cell.lane-all{background:none!important;box-shadow:inset 0 1px 0 var(--line2)!important;margin-top:8px;padding-top:14px}
+.part{background:none!important;padding:0!important;position:relative}
+.part::before{content:'';position:absolute;left:-18px;top:22px;width:7px;height:7px;transform:rotate(45deg);background:#fff;box-shadow:inset 0 0 0 1px currentColor}
+.b-cell.lane-A .part{color:var(--lA)}.b-cell.lane-B .part{color:var(--lB)}.b-cell.lane-all .part{color:var(--cue)}
+.b-cell.lane-all .part::before{display:none}
+.part .p-name,.part .p-dur{color:var(--ink)} .part .p-dur{color:var(--muted)} .part .p-kind{color:var(--muted)}
+.b-head .b-lane{border-bottom:0!important;justify-content:flex-start;padding-left:0;box-shadow:inset 1px 0 0 currentColor;padding:0 0 4px 14px}
+.b-step{font:500 9px var(--ox);letter-spacing:.16em;color:var(--faint)}
+.b-tag{display:none}
+.stl{display:none}
+/* c2: 線と節はそのまま、パートを白い札にして線の横に置く */
+.b-cell[class*="lane-"]:not(.lane-all){padding:6px 0 6px 12px!important}
+.part{background:#fff!important;padding:8px 10px!important;border-radius:4px}
+.part::before{left:-16px!important;top:50%!important;margin-top:-4px}
+.b-cell.lane-all .part{box-shadow:none}
+/* c3: 2本の線が「全員」で合流する。全員は二重の菱形、段の文字は左に小さく */
+.b-cell.lane-all{box-shadow:none!important;padding-left:14px;margin-top:0;padding-top:10px;position:relative}
+.b-cell.lane-all::before{content:'';position:absolute;left:0;right:calc(50% - 3px);top:0;height:1px;background:linear-gradient(90deg,var(--lA),var(--lB))}
+.b-cell.lane-all::after{content:'';position:absolute;left:0;top:0;bottom:30%;width:1px;background:var(--cue)}
+.b-cell.lane-all .part::before{display:block!important;left:-18px;top:22px;box-shadow:inset 0 0 0 1px var(--cue),0 0 0 2px #f3f6f9,0 0 0 3px var(--cue)}
+.b-cell.lane-all .part{color:var(--cue)}
+/* m1: 全員の札も白い札にそろえる */
+.b-cell.lane-all{padding-left:12px!important;padding-top:12px!important}
+.b-cell.lane-all .part::before{left:-16px!important;top:50%!important;margin-top:-4px}
+/* a の直し：菱形を線の中心に、全員の下の線の出っ張りをなくす、ラインの間を少し広く */
+.b-row{column-gap:14px!important}
+.b-cell[class*="lane-"]{position:relative}
+.b-cell[class*="lane-"]:not(.lane-all){box-shadow:none!important}
+.b-cell.lane-A:not(.lane-all)::after,.b-cell.lane-B:not(.lane-all)::after{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--lA)}
+.b-cell.lane-B:not(.lane-all)::after{background:var(--lB)}
+.b-head .b-lane{box-shadow:none!important;position:relative}
+.b-head .b-lane::after{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:currentColor}
+.part{position:static!important}
+.part::before{left:.5px!important;top:50%!important;margin:0!important;transform:translate(-50%,-50%) rotate(45deg)!important;z-index:2}
+.b-cell .part{position:static}
+.b-cell:not(.lane-all) .part::before{top:50%!important}
+.b-cell.lane-all .part::before{left:.5px!important}
+.b-cell.lane-all::after{bottom:50%!important}
+.b-cell.lane-all::before{right:calc(50% - 8px)!important}
+.part::before,.b-cell.lane-all .part::before{left:0!important}
+/* 編集・複製・削除はアイコンだけ（枠なしのグレー、削除は乗せると赤） */
+.scen-list .card .actions{align-items:center}
+.scen-list .card .actions .ib{box-shadow:none!important;background:none;color:var(--muted);padding:6px;width:32px;height:32px;justify-content:center}
+.scen-list .card .actions .ib[data-edit]{margin-left:auto}
+.scen-list .card .actions .ib svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.scen-list .card .actions .ib:hover{color:var(--cue)}
+.scen-list .card .actions .ib.danger:hover{color:var(--ng)}
+
+/* 菱形は SVG で描き、線の中心（端末の画素の境目）にぴったり合わせる */
+.part::before,.b-cell .part::before,.b-cell.lane-all .part::before{transform:none!important;box-shadow:none!important;background:no-repeat center/100% 100%!important;width:10px!important;height:10px!important;left:-4.5px!important;top:50%!important;margin-top:-5px!important;display:block!important}
+.b-cell.lane-A .part::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .6 9.4 5 5 9.4.6 5z' fill='white' stroke='%231493ff' stroke-width='1.1'/%3E%3C/svg%3E")!important}
+.b-cell.lane-B .part::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .6 9.4 5 5 9.4.6 5z' fill='white' stroke='%2312a3a8' stroke-width='1.1'/%3E%3C/svg%3E")!important}
+.b-cell.lane-all .part::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 .7 15.3 8 8 15.3.7 8z' fill='%23f3f6f9' stroke='%231493ff' stroke-width='1.1'/%3E%3Cpath d='M8 4.2 11.8 8 8 11.8 4.2 8z' fill='white' stroke='%231493ff' stroke-width='1.1'/%3E%3C/svg%3E")!important;width:16px!important;height:16px!important;left:-7.5px!important;margin-top:-8px!important}
+.part::before,.b-cell .part::before{left:-5px!important}
+.b-cell.lane-all .part::before{left:-8px!important}
+/* 線は1px。菱形の幅を奇数にして線の中心にそろえる */
+.part::before,.b-cell .part::before{width:11px!important;height:11px!important;left:-5px!important;margin-top:-5.5px!important}
+.b-cell.lane-all .part::before{width:17px!important;height:17px!important;left:-8px!important;margin-top:-8.5px!important}
+
+/* ライン C・D と、ラインが1本だけの区切り（ライン名なし）も同じ線と菱形で */
+.b-cell.lane-C:not(.lane-all)::after,.b-cell.lane-D:not(.lane-all)::after,.b-cell.lane-solo::after{content:'';position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--lC)}
+.b-cell.lane-D:not(.lane-all)::after{background:var(--lD)}
+.b-cell.lane-solo::after{background:var(--lA)}
+.b-cell.lane-solo .part::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .6 9.4 5 5 9.4.6 5z' fill='white' stroke='%231493ff' stroke-width='1.1'/%3E%3C/svg%3E")!important}
+.b-cell.lane-C .part::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .6 9.4 5 5 9.4.6 5z' fill='white' stroke='%23e64a7b' stroke-width='1.1'/%3E%3C/svg%3E")!important}
+.b-cell.lane-D .part::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .6 9.4 5 5 9.4.6 5z' fill='white' stroke='%23c9a227' stroke-width='1.1'/%3E%3C/svg%3E")!important}
+.b-cell.lane-C .part{color:var(--lC)}.b-cell.lane-D .part{color:var(--lD)}
+/* 合流の横線は直前の区切りのライン数に合わせる。ラインが1本なら横線なし */
+.b-cell.lane-all::before{display:none}
+.b-cell.lane-all.merge::before{display:block;right:calc(100% - (var(--prev) - 1) * (100% + 14px) / var(--prev) - 1px)!important}
+.b-cell.lane-all.merge-3::before{background:linear-gradient(90deg,var(--lA),var(--lB),var(--lC))}
+.b-cell.lane-all.merge-4::before{background:linear-gradient(90deg,var(--lA),var(--lB),var(--lC),var(--lD))}
+button.quick.on{background:#fff;color:var(--cue);border:0;box-shadow:inset 0 0 0 1px var(--cue)}
+/* ボードの「↓」は普段は出さず、パートをつかんでいる間だけ「間に新しい段」の置き場として出す */
+.board.dragging .b-arrow{display:block;margin-left:2.6em;color:var(--muted)}
+/* 明るさの切り替えは、ダーク版のデザインができるまで出さない */
+#theme-btn{display:none}
+</style>
 </head>
 <body>
 
@@ -337,14 +572,14 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
   <div id="status" class="notice" hidden></div>
 
   <section class="next" aria-labelledby="next-h">
-    <div class="tk-sec"><h2 id="next-h">次のセッション</h2><span class="tk-en">Next session</span></div>
+    <div class="tk-sec"><h2 id="next-h">次のセッション</h2><span class="tk-en">NEXT / 00</span></div>
     <div id="next-list" class="next-list"></div>
   </section>
 
   <nav class="tabs" role="tablist">
-    <button role="tab" id="tab-tally" aria-selected="true" data-tab="tally">集計</button>
-    <button role="tab" id="tab-sessions" aria-selected="false" data-tab="sessions">確定日</button>
-    <button role="tab" id="tab-scenarios" aria-selected="false" data-tab="scenarios">シナリオ</button>
+    <button role="tab" id="tab-tally" aria-selected="true" data-tab="tally">集計<span class="en">TALLY</span></button>
+    <button role="tab" id="tab-sessions" aria-selected="false" data-tab="sessions">確定日<span class="en">SESSIONS</span></button>
+    <button role="tab" id="tab-scenarios" aria-selected="false" data-tab="scenarios">シナリオ<span class="en">SCENARIO</span></button>
   </nav>
 
   <section class="panel" id="panel-tally"></section>
@@ -893,12 +1128,12 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
       rows.forEach((r) => BLOCK_ORDER.forEach((b) => r[b].win && good.push({ r, b })));
       const cands = [];
       rows.forEach((r) => BLOCK_ORDER.forEach((b) => r[b].candWin && cands.push({ r, b })));
-      html += `<div class="summary"><h2>全員（${poll.players.length}人）が参加できる時間帯</h2>`;
+      html += `<div class="summary"><h2 class="sh">全員（${poll.players.length}人）が参加できる時間帯 <span class="en">AVAILABLE</span></h2>`;
       html += good.length
         ? `<div class="best">${good.map(({ r, b }) => `<span class="slot${b === "night" ? " night" : ""}">${slotName(r, b, r[b].win)}</span>`).join("")}</div>`
         : `<div class="notice">全員が揃う時間帯はありません。${cands.length ? "下の候補日を確認してください。" : "下の表で人数の多い時間帯を確認してください。"}</div>`;
       if (cands.length) {
-        html += `<h3>候補日 <span class="small muted">未定の人が参加できれば確定できる時間帯</span></h3>
+        html += `<h3 class="sh">候補日 <span class="en">TENTATIVE</span></h3><div class="small muted">未定の人が参加できれば確定できる時間帯</div>
           <div class="best">${cands.map(({ r, b }) => `<button type="button" class="slot cand" data-cand="${r.si}" data-block="${b}">${slotName(r, b, r[b].candWin)}<span class="pend">未定: ${esc(r[b].pend.map(displayName).join("、"))}</span></button>`).join("")}</div>`;
       }
       html += `</div>`;
@@ -906,7 +1141,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
 
     const notes = Array.isArray(poll.notes) ? poll.notes : [];
     if (S.canWrite) {
-      html += `<div class="memo"><h3>備考（時間の条件はここから読み取ります）</h3>
+      html += `<div class="memo"><h3 class="sh">備考（時間の条件はここから読み取ります） <span class="en">MEMO</span></h3>
         <div class="small muted">例:「22:00から」「23時まで」「夜は22時〜23時半」「10/25は21時半から」。日付を書くとその日だけ、書かなければ全日程に当てはめます。</div>
         <details class="small"><summary>コメントをまとめて貼り付ける</summary>
           <textarea id="memo-bulk" style="min-height:80px;margin-top:6px" placeholder="かき：22:00から&#10;あい：10/22は23時まで"></textarea>
@@ -918,7 +1153,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
         }).join("")}</div></div>`;
     }
     if ((!S.canWrite && comments.length) || notes.length || hasCellNotes) {
-      html += `<div class="memo"><h3>備考</h3>`;
+      html += `<div class="memo"><h3 class="sh">備考 <span class="en">MEMO</span></h3>`;
       poll.players.forEach((p) => Object.entries(p.cellNotes || {}).forEach(([si, t]) => {
         const sl = poll.slots[+si]; if (sl) html += `<div><span class="memo-name">${esc(p.name)}</span><span class="mono small">${fmtDay(atMin(dateOf(sl), 0))}</span> ${esc(t)}</div>`;
       }));
@@ -963,7 +1198,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
   }
   function planSectionHtml(poll, scen) {
     const segs = scen.segments || [];
-    let html = `<div class="summary"><h2>「${esc(scen.name)}」の組み方</h2>${boardHtml(segs)}`;
+    let html = `<div class="summary"><h2 class="sh">「${esc(scen.name)}」の組み方 <span class="en">PLAN</span></h2>${boardHtml(segs)}`;
     const roles = new Set(poll.players.map((p) => roleOf(p.name)).filter(Boolean));
     const missing = [...new Set(segs.flatMap((g) => g.roles))].filter((r) => r !== "全員" && !roles.has(r));
     if (missing.length) html += `<div class="notice warn">伝助の表に ${missing.map(esc).join("、")} が付いた名前が見つかりません。名前の頭に「KP」「HO1」のように付けると判定できます。</div>`;
@@ -1158,7 +1393,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
   // ---------- 確定日 ----------
   function sessionCard(s, { withDelete } = {}) {
     return `<article class="card${s.tentative ? " tentative" : ""}" data-sid="${esc(s.id)}">
-      ${s.tentative ? `<div class="pend"><b>候補日</b>${s.pending?.length ? `　未定: ${esc(s.pending.join("、"))}` : ""}</div>` : ""}
+      ${s.tentative ? `<div class="pend"><b>TENTATIVE</b>${s.pending?.length ? `　未定: ${esc(s.pending.join("、"))}` : ""}</div>` : ""}
       <div class="sess-date"><span class="sess-day">${fmtDay(s.start)}</span><span class="sess-time">${fmtTime(s.start)}–${fmtEnd(s.start, s.end)}</span></div>
       <div class="sess-title">${esc(s.title)}</div>
       ${s.scenario && s.scenario !== s.title && !s.title.startsWith(s.scenario) ? `<div class="small muted">シナリオ: ${esc(s.scenario)}</div>` : ""}
@@ -1203,6 +1438,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     const now = Date.now();
     const up = S.sessions.filter((s) => new Date(s.end) >= now).slice(0, 3);
     const el = $("#next-list");
+    $(".next .tk-en") && ($(".next .tk-en").textContent = `NEXT / ${String(up.length).padStart(2, "0")}`);
     el.innerHTML = up.length ? up.map((s) => sessionCard(s)).join("") : `<div class="notice">確定したセッションはまだありません。集計タブで「昼で確定」「夜で確定」か、シナリオの「この案で確定」を押すと、ここに並びます。</div>`;
     bindSessionCards(el);
   }
@@ -1226,7 +1462,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     const past = S.sessions.filter((s) => new Date(s.end) < now).reverse();
     const bulk = up.filter((s) => S.sessWithCand !== false || !s.tentative);
     const el = $("#panel-sessions");
-    el.innerHTML = `<h2>これからのセッション（確定 ${up.filter((s) => !s.tentative).length}・候補 ${up.filter((s) => s.tentative).length}）</h2>
+    el.innerHTML = `<h2 class="sh">これからのセッション <span class="cnt">確定<b>${up.filter((s) => !s.tentative).length}</b>・候補<b>${up.filter((s) => s.tentative).length}</b></span> <span class="en">UPCOMING</span></h2>
       ${up.length ? `<div class="bulk">
         <div class="row">
           ${groups.length > 1 ? `<label class="field" style="flex:1;min-width:180px">対象<select id="sess-filter"><option value="">すべて</option>${groups.map((g) => `<option value="${esc(g)}"${g === S.sessFilter ? " selected" : ""}>${esc(pollTitle(g) || "（調整表なし）")}</option>`).join("")}</select></label>` : ""}
@@ -1284,7 +1520,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     const partsGrid = (list, cols) => (list.length ? `<div class="b-parts" style="--cols:${cols}">${list.map(chip).join("")}</div>` : "");
     const colsFor = (k, wrap) => Math.max(1, wrap ? Math.ceil(k / 2) : k);
     const grip = (l, st) => (ed && n.filter((g) => g.line === l && g.step === st).length > 1 ? `<button type="button" class="b-grip" data-grip="${l}:${st}" aria-label="このマスをまとめて動かす">⠿ まとめて</button>` : "");
-    const stepLabel = (st) => `<span class="b-step">段${st}${ed && n.some((g) => g.step === st) ? `<button type="button" class="b-x" data-rmstep="${st}" aria-label="段${st}を削除">×</button>` : ""}</span>`;
+    const stepLabel = (st) => `<span class="b-step">STEP ${st}${ed && n.some((g) => g.step === st) ? `<button type="button" class="b-x" data-rmstep="${st}" aria-label="段${st}を削除">×</button>` : ""}</span>`;
     // 「全員そろって」の段でラインを区切る。区切りごとに、2本以上あるときだけライン名を出す
     const sections = [];
     let cur = null;
@@ -1294,12 +1530,13 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
       if (laneParts.length || !allParts.length) { if (!cur) sections.push((cur = { steps: [] })); cur.steps.push(st); }
       if (allParts.length) { sections.push({ wide: st, parts: allParts, mixed: laneParts.length > 0 }); cur = null; }
     });
-    let html = `<div class="board">`, first = true;
+    let html = `<div class="board">`, first = true, prevCount = 0;
     const arrow = (st) => { if (!first) html += `<div class="b-arrow"${ed ? ` data-insert="${st}"` : ""}>↓</div>`; first = false; };
     sections.forEach((sec) => {
       if (sec.wide != null) {
         if (!sec.mixed) arrow(sec.wide);
-        html += `<div class="b-row" style="--lanes:1">${sec.mixed ? `<span class="b-step"></span>` : stepLabel(sec.wide)}<div class="b-cell lane-all" data-cell="全体:${sec.wide}">${grip("全体", sec.wide)}<span class="b-tag">全員そろって</span>${partsGrid(sec.parts, colsFor(sec.parts.length, sec.parts.length > 4))}</div></div>`;
+        html += `<div class="b-row" style="--lanes:1">${sec.mixed ? `<span class="b-step"></span>` : stepLabel(sec.wide)}<div class="b-cell lane-all${prevCount > 1 && !sec.mixed ? ` merge merge-${prevCount}` : ""}" data-cell="全体:${sec.wide}" style="--prev:${prevCount || 1}">${grip("全体", sec.wide)}<span class="b-tag">全員そろって</span>${partsGrid(sec.parts, colsFor(sec.parts.length, sec.parts.length > 4))}</div></div>`;
+        prevCount = 0;
         return;
       }
       const from = sec.steps[0], to = sec.steps[sec.steps.length - 1];
@@ -1308,9 +1545,10 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
       const count = Math.min(4, Math.max(used, (opts.secLanes || {})[from] || 1));
       const lanes = LINES.slice(0, count);
       const multi = count > 1;
+      prevCount = count;
       if (multi) {
         arrow(from);
-        html += `<div class="b-row b-head" style="--lanes:${count}"><span class="b-step"></span>${lanes.map((l) => `<span class="b-lane lane-${l}">ライン${l}${ed ? `<button type="button" class="b-x" data-rmlane="${l}:${from}:${to}" aria-label="ライン${l}を削除">×</button>` : ""}</span>`).join("")}</div>`;
+        html += `<div class="b-row b-head" style="--lanes:${count}"><span class="b-step"></span>${lanes.map((l) => `<span class="b-lane lane-${l}">LINE ${l}${ed ? `<button type="button" class="b-x" data-rmlane="${l}:${from}:${to}" aria-label="ライン${l}を削除">×</button>` : ""}</span>`).join("")}</div>`;
         first = true;
       }
       sec.steps.forEach((st) => {
@@ -1319,7 +1557,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
         const wrap = per.reduce((a, x) => a + x.length, 0) > 4;
         html += `<div class="b-row" style="--lanes:${count}">${stepLabel(st)}${lanes.map((l, k) => `<div class="b-cell ${multi ? `lane-${l}` : "lane-solo"}" data-cell="${l}:${st}">${grip(l, st)}${partsGrid(per[k], colsFor(per[k].length, wrap))}${ed ? `<button type="button" class="b-add" data-addcell="${l}:${st}" aria-label="${multi ? `ライン${l}の` : ""}段${st}にパートを追加">＋</button>` : ""}</div>`).join("")}</div>`;
       });
-      if (ed && count < 4) html += `<div class="b-sec-tools"><button type="button" data-addlane="${from}:${count}">＋ ${multi ? "ラインを追加" : "ラインを分ける"}</button></div>`;
+      if (ed && count < 4) html += `<div class="b-sec-tools"><button type="button" class="addb" data-addlane="${from}:${count}">＋ ${multi ? "ラインを追加" : "ラインを分ける"}</button></div>`;
     });
     if (ed && n.length) html += `<div class="b-insert-end" data-insert="${(steps[steps.length - 1] || 0) + 1}">ここに置くと新しい段</div>`;
     return html + `</div>`;
@@ -1357,6 +1595,11 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     return segs;
   }
 
+  const ICON = {
+    edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
+    dup: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+    del: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
+  };
   function renderScenarios() {
     const el = $("#panel-scenarios");
     if (!S.ed) S.ed = newEditor();
@@ -1364,7 +1607,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
         <h3>${esc(s.name)}</h3>
         ${boardHtml(s.segments || [])}
         ${s.note ? `<div class="small muted">${esc(s.note)}</div>` : ""}
-        <div class="actions"><button class="primary" data-use>この構成で日程を組む</button>${S.canWrite ? `<button data-edit>編集</button><button data-dup>複製</button><button class="danger" data-del>削除</button>` : ""}</div>
+        <div class="actions"><button class="primary" data-use>この構成で日程を組む</button>${S.canWrite ? `<button class="ib" data-edit title="編集" aria-label="編集">${ICON.edit}</button><button class="ib" data-dup title="複製" aria-label="複製">${ICON.dup}</button><button class="ib danger" data-del title="削除" aria-label="削除">${ICON.del}</button>` : ""}</div>
         <div data-host></div></article>`).join("")}</div>` : `<div class="notice">登録されたシナリオはまだありません。下で作ると、ここに並びます。</div>`}
       ${S.canWrite ? `<form class="confirm-form" id="sf"></form>` : ""}`;
     if (S.canWrite) renderEditor();
@@ -1393,7 +1636,7 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
     const stepper = (key, d, label, val) => `<span class="tplitem"><span>${label}</span><span class="stepper"><button type="button" data-tpl="${key}" data-d="-${d}" aria-label="${label}を減らす">−</button>${key === "tplHo" ? `<span class="mono">${val}</span>` : durBox(`data-tplin="${key}"`, E[key])}<button type="button" data-tpl="${key}" data-d="${d}" aria-label="${label}を増やす">＋</button></span></span>`;
     const g = E.sel != null ? E.segments[E.sel] : null;
     const lastStep = Math.max(0, ...E.segments.map((x) => x.step));
-    f.innerHTML = `<h3>${E.id ? `「${esc(E.name)}」を編集` : "シナリオを作る"}</h3>
+    f.innerHTML = `<h3 class="sh">${E.id ? `「${esc(E.name)}」を編集` : "シナリオを作る"} <span class="en">EDIT</span></h3>
       <label class="field">シナリオ名<input type="text" id="sf-name" required placeholder="例: 狂気山脈" value="${esc(E.name)}"></label>
 
       <details class="tpl"${E.segments.length && !E.tplOpen ? "" : " open"}><summary class="small"><b>テンプレートから作る</b></summary>
@@ -1414,9 +1657,9 @@ header.top .theme { margin-left: auto; font-size: 12px; padding: 3px 10px; color
       ${boardHtml(E.segments, { editable: true, sel: E.sel, secLanes: E.secLanes })}
       <div class="row board-tools">
         ${E.undo ? `<button type="button" data-undo>↶ 元に戻す</button>` : ""}
-        <button type="button" data-addstep>＋ 段を追加</button>
-        <button type="button" data-addall>＋ 全員パート</button>
-        <span class="addindiv"><button type="button" data-addindiv>＋ 全員の個別</button><span class="small muted">各</span>${durBox('data-tplin="tplIntro"', E.tplIntro)}</span>
+        <button type="button" class="addb" data-addstep>＋ 段を追加</button>
+        <button type="button" class="addb" data-addall>＋ 全員パート</button>
+        <span class="addindiv"><button type="button" class="addb" data-addindiv>＋ 全員の個別</button><span class="small muted">各</span>${durBox('data-tplin="tplIntro"', E.tplIntro)}</span>
         ${E.segments.length ? `<span class="small muted">合計 <span class="mono">${fmtDur(E.segments.reduce((a, x) => a + x.minutes, 0))}</span></span>` : ""}
       </div>
 
